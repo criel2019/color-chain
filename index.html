@@ -11,10 +11,36 @@ body{background:#0a0a0f;color:#fff;font-family:'Outfit',sans-serif;display:flex;
 #game-container{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px}
 #top-bar{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0 4px}
 #score-display{font-size:18px;font-weight:800;color:#ccc}
-#score-display span{color:#ff6b4a;font-size:24px}
+#score-display .hud-label{font-size:18px;color:#ccc}
+#score-display #score{color:#ff6b4a;font-size:24px}
 #combo-display{font-size:16px;font-weight:800;color:transparent;min-width:100px;text-align:right;transition:transform .15s}
 #combo-display.active{color:#ffcc00;text-shadow:0 0 12px rgba(255,200,0,.6)}
 #turn-display{font-size:13px;font-weight:600;color:#555}
+#turn-display .hud-label{color:#555}
+#turn-display #turn{color:#888}
+#session-bar{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0 4px;gap:8px}
+#mode-pill{font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:#ffb08f;background:rgba(255,107,74,.08);border:1px solid rgba(255,107,74,.25);border-radius:999px;padding:4px 10px}
+#locale-select{background:#101320;color:#ddd;border:1px solid #262b42;border-radius:8px;padding:4px 8px;font-family:'Outfit',sans-serif;font-size:12px}
+#locale-select:focus{outline:1px solid #ff6b4a;outline-offset:1px}
+#match-panel{width:100%;max-width:380px;background:rgba(16,19,32,.9);border:1px solid #232842;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:7px;box-shadow:0 8px 28px rgba(0,0,0,.22)}
+.match-row{display:flex;align-items:center;gap:6px}
+.match-row.wrap{flex-wrap:wrap}
+.match-label{font-size:10px;font-weight:700;letter-spacing:1.1px;color:#666;text-transform:uppercase;min-width:46px}
+.match-input{flex:1;min-width:0;background:#0d111d;color:#ddd;border:1px solid #2a304b;border-radius:8px;padding:6px 8px;font-family:'Outfit',sans-serif;font-size:12px}
+.match-input:focus{outline:1px solid #ff6b4a;outline-offset:1px}
+.match-btn{background:#171c2f;color:#d7d7df;border:1px solid #2c3352;border-radius:8px;padding:6px 10px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:.6px;cursor:pointer}
+.match-btn:hover{background:#1d233a}
+.match-btn:disabled{opacity:.45;cursor:not-allowed}
+.match-btn.primary{background:#ff6b4a22;border-color:#ff6b4a55;color:#ffb7a7}
+.match-btn.primary:hover{background:#ff6b4a2f}
+.match-btn.warn{background:#ffc10712;border-color:#ffc1073f;color:#ffd36a}
+.match-meta{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center}
+.match-meta-key{font-size:10px;color:#555;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.match-meta-val{font-size:12px;color:#bbb;min-height:16px}
+.match-meta-val.strong{color:#fff}
+.match-meta-val.ok{color:#66ffcc}
+.match-meta-val.warn{color:#ffcc66}
+.match-meta-val.bad{color:#ff7f7f}
 #board-wrapper{position:relative;border:2px solid #1a1a2e;border-radius:8px;overflow:visible;background:transparent;width:216px;height:437px;box-shadow:0 0 40px rgba(100,50,255,.05)}
 #board-bg{position:absolute;top:0;left:0;right:0;bottom:0;background:#0d0d18;border-radius:6px;z-index:1;overflow:hidden}
 canvas#gameCanvas{display:block;margin:-60px;position:relative;z-index:10;pointer-events:none}
@@ -29,42 +55,76 @@ canvas#gameCanvas{display:block;margin:-60px;position:relative;z-index:10;pointe
 #game-over-overlay.show{display:flex}
 #game-over-overlay h2{font-size:28px;font-weight:900;color:#ff4444;text-transform:uppercase;letter-spacing:4px}
 #game-over-overlay .final-score{font-size:18px;color:#aaa}
-#game-over-overlay .final-score span{color:#ff6b4a;font-weight:800;font-size:24px}
+#game-over-overlay .final-score #final-score{color:#ff6b4a;font-weight:800;font-size:24px}
 #restart-btn{margin-top:8px;padding:10px 32px;background:#ff6b4a;color:#fff;border:none;border-radius:6px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:1px}
 #restart-btn:hover{background:#ff8566}
 #touch-controls{display:none;width:100%;gap:6px;justify-content:center;padding-top:4px;flex-wrap:wrap}
 .touch-btn{width:52px;height:52px;background:#1a1a2e;border:1px solid #2a2a4e;border-radius:10px;color:#888;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
 .touch-btn:active{background:#2a2a4e}
 .touch-btn.wide{width:64px;font-size:11px;font-weight:700;letter-spacing:1px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(pointer:coarse){#touch-controls{display:flex}#controls-hint{display:none}}
 </style>
 </head>
 <body>
 <div id="game-container">
   <div id="top-bar">
-    <div id="score-display">SCORE <span id="score">0</span></div>
-    <div id="turn-display">TURN <span id="turn">0</span></div>
+    <div id="score-display"><span class="hud-label" data-i18n="hud.score">SCORE</span> <span id="score">0</span></div>
+    <div id="turn-display"><span class="hud-label" data-i18n="hud.turn">TURN</span> <span id="turn">0</span></div>
     <div id="combo-display"></div>
+  </div>
+  <div id="session-bar">
+    <div id="mode-pill" data-i18n="mode.solo">SOLO</div>
+    <label for="locale-select" class="sr-only" data-i18n="ui.language">Language</label>
+    <select id="locale-select" aria-label="Language">
+      <option value="en">English</option>
+      <option value="ko">한국어</option>
+      <option value="ja">日本語</option>
+      <option value="es">Español</option>
+    </select>
+  </div>
+  <div id="match-panel">
+    <div class="match-row">
+      <div class="match-label" data-i18n="net.server">Server</div>
+      <input id="match-server-url" class="match-input" type="text" value="" placeholder="ws://localhost:8787" spellcheck="false">
+    </div>
+    <div class="match-row">
+      <div class="match-label" data-i18n="net.name">Name</div>
+      <input id="match-player-name" class="match-input" type="text" value="">
+    </div>
+    <div class="match-row wrap">
+      <button id="match-connect-btn" class="match-btn" type="button">CONNECT</button>
+      <button id="match-queue-btn" class="match-btn primary" type="button">FIND MATCH</button>
+      <button id="match-leave-btn" class="match-btn warn" type="button">LEAVE</button>
+    </div>
+    <div class="match-meta">
+      <div class="match-meta-key" data-i18n="net.status">Status</div>
+      <div id="match-status" class="match-meta-val">Offline</div>
+      <div class="match-meta-key" data-i18n="net.opponent">Opponent</div>
+      <div id="match-opponent" class="match-meta-val">-</div>
+      <div class="match-meta-key" data-i18n="net.result">Result</div>
+      <div id="match-result" class="match-meta-val">-</div>
+    </div>
   </div>
   <div id="board-wrapper">
     <div id="board-bg"></div>
     <div id="heat-bar"><div id="heat-bar-fill" style="width:0%"></div></div>
     <canvas id="gameCanvas"></canvas>
     <div id="side-panels">
-      <div class="side-box"><div class="side-label">Next</div><canvas id="next-canvas" class="side-canvas" width="60" height="60"></canvas></div>
-      <div class="side-box"><div class="side-label">Hold</div><canvas id="hold-canvas" class="side-canvas" width="60" height="60"></canvas></div>
+      <div class="side-box"><div class="side-label" data-i18n="panel.next">Next</div><canvas id="next-canvas" class="side-canvas" width="60" height="60"></canvas></div>
+      <div class="side-box"><div class="side-label" data-i18n="panel.hold">Hold</div><canvas id="hold-canvas" class="side-canvas" width="60" height="60"></canvas></div>
     </div>
-    <div id="game-over-overlay"><h2>Game Over</h2><div class="final-score">SCORE <span id="final-score">0</span></div><button id="restart-btn">RETRY</button></div>
+    <div id="game-over-overlay"><h2 data-i18n="overlay.gameOver">Game Over</h2><div class="final-score"><span data-i18n="hud.score">SCORE</span> <span id="final-score">0</span></div><button id="restart-btn" data-i18n="action.retry">RETRY</button></div>
   </div>
-  <div id="controls-hint">← → 이동 | Z X 회전 | ↓ 소프트드롭 | Space 하드드롭 | C 킵</div>
+  <div id="controls-hint" data-i18n="controls.hint">← → Move | Z/X Rotate | ↓ Soft Drop | Space Hard Drop | C Hold</div>
   <div id="touch-controls">
-    <div class="touch-btn" data-action="left">◀</div>
-    <div class="touch-btn" data-action="rotL">↺</div>
-    <div class="touch-btn" data-action="down">▼</div>
-    <div class="touch-btn" data-action="rotR">↻</div>
-    <div class="touch-btn" data-action="right">▶</div>
-    <div class="touch-btn wide" data-action="drop">DROP</div>
-    <div class="touch-btn wide" data-action="hold">HOLD</div>
+    <div class="touch-btn" data-action="left" aria-label="Move Left">◀</div>
+    <div class="touch-btn" data-action="rotL" aria-label="Rotate Left">↺</div>
+    <div class="touch-btn" data-action="down" aria-label="Soft Drop">▼</div>
+    <div class="touch-btn" data-action="rotR" aria-label="Rotate Right">↻</div>
+    <div class="touch-btn" data-action="right" aria-label="Move Right">▶</div>
+    <div class="touch-btn wide" data-action="drop" data-i18n="action.drop">DROP</div>
+    <div class="touch-btn wide" data-action="hold" data-i18n="action.hold">HOLD</div>
   </div>
 </div>
 <script>
@@ -109,6 +169,875 @@ let pendingJunkCols = [], warningJunkCols = [];
 let particles = [], floatingTexts = [], rings = [];
 let shakeAmount = 0, screenFlash = 0;
 let cellFlash = {}, cellScale = {};
+let gameMode = 'solo';
+let incomingAttackQueue = [];
+let matchRuntime = { roomId: null, playerId: 'local', outgoingAttack: null };
+let gameplaySeed = null, gameplayRngState = null;
+let netClient = {
+  ws: null,
+  connected: false,
+  connecting: false,
+  queued: false,
+  inMatch: false,
+  clientId: null,
+  roomId: null,
+  matchSeed: null,
+  playerName: '',
+  serverUrl: '',
+  opponent: null,
+  lastResult: null,
+  lastError: '',
+  sentGameOverForRoomId: null,
+  lastRemoteState: null
+};
+
+const STORAGE_KEYS = {
+  locale: 'colorchain.locale',
+  matchServerUrl: 'colorchain.match.serverUrl',
+  matchPlayerName: 'colorchain.match.playerName',
+};
+
+const I18N = {
+  en: {
+    'meta.title': 'Color Chain',
+    'hud.score': 'SCORE',
+    'hud.turn': 'TURN',
+    'panel.next': 'NEXT',
+    'panel.hold': 'HOLD',
+    'overlay.gameOver': 'Game Over',
+    'action.retry': 'RETRY',
+    'action.drop': 'DROP',
+    'action.hold': 'HOLD',
+    'controls.hint': '← → Move | Z/X Rotate | ↓ Soft Drop | Space Hard Drop | C Hold',
+    'ui.language': 'Language',
+    'mode.solo': 'SOLO',
+    'mode.versus': 'VERSUS',
+    'net.server': 'Server',
+    'net.name': 'Name',
+    'net.status': 'Status',
+    'net.opponent': 'Opponent',
+    'net.result': 'Result',
+    'net.connect': 'CONNECT',
+    'net.disconnect': 'DISCONNECT',
+    'net.findMatch': 'FIND MATCH',
+    'net.cancelQueue': 'CANCEL QUEUE',
+    'net.leave': 'LEAVE',
+    'net.offline': 'Offline',
+    'net.connecting': 'Connecting...',
+    'net.connected': 'Connected',
+    'net.queued': 'Queued for 1v1 matchmaking...',
+    'net.matched': 'Match found',
+    'net.matchEnded': 'Match ended',
+    'net.waiting': 'Waiting...',
+    'net.opponentLeft': 'Opponent left',
+    'net.leftMatch': 'Left match',
+    'net.socketClosed': 'Disconnected',
+    'net.readyPrompt': 'Connect and press FIND MATCH',
+    'net.needServerUrl': 'Enter a WebSocket server URL (e.g. wss://...)',
+    'net.result.win': 'WIN',
+    'net.result.lose': 'LOSE',
+    'net.result.draw': 'DRAW',
+    'aria.moveLeft': 'Move Left',
+    'aria.moveRight': 'Move Right',
+    'aria.rotateLeft': 'Rotate Left',
+    'aria.rotateRight': 'Rotate Right',
+    'aria.softDrop': 'Soft Drop',
+    'fx.chain': '{chain}x CHAIN!',
+    'fx.boom': 'BOOM!',
+    'fx.junkWarning': '⚠ JUNK!',
+    'fx.points': '+{points}',
+    'fx.merge': '{count} MERGE +{points}',
+  },
+  ko: {
+    'meta.title': '컬러 체인',
+    'hud.score': '점수',
+    'hud.turn': '턴',
+    'panel.next': '다음',
+    'panel.hold': '보관',
+    'overlay.gameOver': '게임 오버',
+    'action.retry': '다시 하기',
+    'action.drop': '드롭',
+    'action.hold': '킵',
+    'controls.hint': '← → 이동 | Z/X 회전 | ↓ 소프트드롭 | Space 하드드롭 | C 킵',
+    'ui.language': '언어',
+    'mode.solo': '솔로',
+    'mode.versus': '대전',
+    'aria.moveLeft': '왼쪽 이동',
+    'aria.moveRight': '오른쪽 이동',
+    'aria.rotateLeft': '왼쪽 회전',
+    'aria.rotateRight': '오른쪽 회전',
+    'aria.softDrop': '소프트드롭',
+    'fx.chain': '{chain}연쇄!',
+    'fx.boom': '펑!',
+    'fx.junkWarning': '⚠ 방해블록!',
+    'fx.points': '+{points}',
+    'fx.merge': '{count}개 합성 +{points}',
+  },
+  ja: {
+    'meta.title': 'カラー・チェイン',
+    'hud.score': 'SCORE',
+    'hud.turn': 'TURN',
+    'panel.next': 'NEXT',
+    'panel.hold': 'HOLD',
+    'overlay.gameOver': 'ゲームオーバー',
+    'action.retry': 'RETRY',
+    'action.drop': 'DROP',
+    'action.hold': 'HOLD',
+    'controls.hint': '← → 移動 | Z/X 回転 | ↓ ソフトドロップ | Space ハードドロップ | C ホールド',
+    'ui.language': '言語',
+    'mode.solo': 'SOLO',
+    'mode.versus': 'VERSUS',
+    'aria.moveLeft': '左へ移動',
+    'aria.moveRight': '右へ移動',
+    'aria.rotateLeft': '左回転',
+    'aria.rotateRight': '右回転',
+    'aria.softDrop': 'ソフトドロップ',
+    'fx.chain': '{chain}連鎖!',
+    'fx.boom': 'BOOM!',
+    'fx.junkWarning': '⚠ おじゃま!',
+    'fx.points': '+{points}',
+    'fx.merge': '{count} MERGE +{points}',
+  },
+  es: {
+    'meta.title': 'Color Chain',
+    'hud.score': 'PUNTOS',
+    'hud.turn': 'TURNO',
+    'panel.next': 'SIG',
+    'panel.hold': 'HOLD',
+    'overlay.gameOver': 'Fin de partida',
+    'action.retry': 'REINTENTAR',
+    'action.drop': 'CAER',
+    'action.hold': 'GUARDAR',
+    'controls.hint': '← → Mover | Z/X Rotar | ↓ Caída suave | Space Caída dura | C Guardar',
+    'ui.language': 'Idioma',
+    'mode.solo': 'SOLO',
+    'mode.versus': 'VERSUS',
+    'aria.moveLeft': 'Mover a la izquierda',
+    'aria.moveRight': 'Mover a la derecha',
+    'aria.rotateLeft': 'Rotar a la izquierda',
+    'aria.rotateRight': 'Rotar a la derecha',
+    'aria.softDrop': 'Caída suave',
+    'fx.chain': '¡{chain}x CADENA!',
+    'fx.boom': '¡BOOM!',
+    'fx.junkWarning': '⚠ BASURA!',
+    'fx.points': '+{points}',
+    'fx.merge': '{count} MERGE +{points}',
+  }
+};
+
+const SUPPORTED_LOCALES = Object.keys(I18N);
+let currentLocale = 'en';
+let numberFormatter = new Intl.NumberFormat('en');
+
+const colorChainEventHandlers = new Map();
+function onColorChainEvent(type, handler) {
+  if (!colorChainEventHandlers.has(type)) colorChainEventHandlers.set(type, new Set());
+  colorChainEventHandlers.get(type).add(handler);
+}
+function offColorChainEvent(type, handler) {
+  const set = colorChainEventHandlers.get(type);
+  if (set) set.delete(handler);
+}
+function emitColorChainEvent(type, payload) {
+  const evt = {
+    type: type,
+    ts: Date.now(),
+    payload: payload || {}
+  };
+  const set = colorChainEventHandlers.get(type);
+  if (set) {
+    set.forEach(function(handler) {
+      try { handler(evt); } catch (err) { console.error('[ColorChain:on]', err); }
+    });
+  }
+  window.dispatchEvent(new CustomEvent('colorchain:' + type, { detail: evt }));
+}
+
+function hashString32(input) {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function normalizeSeed(seed) {
+  if (seed === null || seed === undefined || seed === '') return null;
+  if (typeof seed === 'number' && Number.isFinite(seed)) return (Math.floor(seed) >>> 0);
+  return hashString32(String(seed));
+}
+function setGameplaySeed(seed) {
+  const n = normalizeSeed(seed);
+  gameplaySeed = n;
+  gameplayRngState = n;
+}
+function randGame() {
+  if (gameplayRngState === null) return Math.random();
+  gameplayRngState = (gameplayRngState + 0x6D2B79F5) >>> 0;
+  let t = gameplayRngState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+function resolveLocale(locale) {
+  if (!locale) return 'en';
+  const raw = String(locale).toLowerCase();
+  if (I18N[raw]) return raw;
+  const short = raw.split('-')[0];
+  return I18N[short] ? short : 'en';
+}
+function getDictValue(dict, key) {
+  return dict ? dict[key] : undefined;
+}
+function t(key, vars) {
+  let value = getDictValue(I18N[currentLocale], key);
+  if (value === undefined) value = getDictValue(I18N.en, key);
+  if (value === undefined) value = key;
+  if (!vars) return value;
+  return value.replace(/\{(\w+)\}/g, function(_, name) {
+    return vars[name] === undefined ? '' : String(vars[name]);
+  });
+}
+function formatInt(v) {
+  return numberFormatter.format(Math.max(0, Math.floor(v || 0)));
+}
+function updateScoreUI() {
+  document.getElementById('score').textContent = formatInt(score || 0);
+}
+function updateTurnUI() {
+  document.getElementById('turn').textContent = formatInt(turn || 0);
+}
+function updateFinalScoreUI() {
+  document.getElementById('final-score').textContent = formatInt(score || 0);
+}
+function updateTouchAriaLabels() {
+  const map = {
+    left: 'aria.moveLeft',
+    right: 'aria.moveRight',
+    rotL: 'aria.rotateLeft',
+    rotR: 'aria.rotateRight',
+    down: 'aria.softDrop'
+  };
+  document.querySelectorAll('.touch-btn[data-action]').forEach(function(btn) {
+    const key = map[btn.dataset.action];
+    if (key) btn.setAttribute('aria-label', t(key));
+  });
+  const localeSelect = document.getElementById('locale-select');
+  if (localeSelect) localeSelect.setAttribute('aria-label', t('ui.language'));
+}
+function updateModeUI() {
+  const modeEl = document.getElementById('mode-pill');
+  if (!modeEl) return;
+  modeEl.textContent = t(gameMode === 'versus' ? 'mode.versus' : 'mode.solo');
+}
+function applyLocalization() {
+  document.documentElement.lang = currentLocale;
+  document.title = t('meta.title');
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    el.textContent = t(el.dataset.i18n);
+  });
+  const sel = document.getElementById('locale-select');
+  if (sel && sel.value !== currentLocale) sel.value = currentLocale;
+  numberFormatter = new Intl.NumberFormat(currentLocale);
+  updateScoreUI();
+  updateTurnUI();
+  if (gameOver) updateFinalScoreUI();
+  updateModeUI();
+  updateTouchAriaLabels();
+  if (typeof updateMatchUi === 'function') updateMatchUi();
+}
+function setLocale(locale, silent) {
+  currentLocale = resolveLocale(locale);
+  try { localStorage.setItem(STORAGE_KEYS.locale, currentLocale); } catch (_) {}
+  applyLocalization();
+  if (!silent) emitColorChainEvent('localeChanged', { locale: currentLocale });
+  return currentLocale;
+}
+function detectInitialLocale() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.locale);
+    if (saved) return saved;
+  } catch (_) {}
+  return (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+}
+
+function clonePieceForSnapshot(piece) {
+  if (!piece) return null;
+  return {
+    id: piece.id,
+    row: piece.row,
+    col: piece.col,
+    cells: piece.cells.map(function(cell) { return cell.slice(); }),
+    colors: piece.colors.slice()
+  };
+}
+function getStateSnapshot() {
+  return {
+    mode: gameMode,
+    locale: currentLocale,
+    score: score || 0,
+    turn: turn || 0,
+    gameOver: !!gameOver,
+    gameState: gameState,
+    board: board ? board.map(function(r) { return r.slice(); }) : null,
+    currentPiece: clonePieceForSnapshot(currentPiece),
+    nextPiece: clonePieceForSnapshot(nextPiece),
+    holdPiece: clonePieceForSnapshot(holdPiece),
+    warningJunkCols: warningJunkCols.slice(),
+    pendingJunkCols: pendingJunkCols.slice(),
+    gameplaySeed: gameplaySeed,
+    gameplayRngState: gameplayRngState,
+  };
+}
+
+function setGameMode(mode, options) {
+  gameMode = mode === 'versus' ? 'versus' : 'solo';
+  if (gameMode !== 'versus') {
+    matchRuntime.roomId = null;
+    matchRuntime.playerId = 'local';
+    matchRuntime.outgoingAttack = null;
+  }
+  if (options && typeof options === 'object') {
+    if (Object.prototype.hasOwnProperty.call(options, 'roomId')) matchRuntime.roomId = options.roomId;
+    if (Object.prototype.hasOwnProperty.call(options, 'playerId')) matchRuntime.playerId = options.playerId;
+    if (Object.prototype.hasOwnProperty.call(options, 'outgoingAttack') && typeof options.outgoingAttack === 'function') matchRuntime.outgoingAttack = options.outgoingAttack;
+  }
+  updateModeUI();
+  emitColorChainEvent('modeChanged', { mode: gameMode, roomId: matchRuntime.roomId, playerId: matchRuntime.playerId });
+}
+function normalizeIncomingAttack(packet) {
+  if (typeof packet === 'number') {
+    return { type: 'garbage', power: Math.max(0, Math.floor(packet)), source: 'remote' };
+  }
+  const p = packet || {};
+  return {
+    type: p.type || 'garbage',
+    power: Math.max(0, Math.floor(p.power || 0)),
+    cols: Array.isArray(p.cols) ? p.cols.map(function(v) { return Math.max(0, Math.min(COLS - 1, Math.floor(v))); }) : null,
+    source: p.source || 'remote',
+    fromPlayerId: p.fromPlayerId || null,
+    meta: p.meta || null,
+  };
+}
+function queueIncomingAttack(packet) {
+  const normalized = normalizeIncomingAttack(packet);
+  if (normalized.power <= 0 && (!normalized.cols || !normalized.cols.length)) return null;
+  incomingAttackQueue.push(normalized);
+  emitColorChainEvent('incomingAttackQueued', normalized);
+  return normalized;
+}
+function pickRandomAttackCols(power) {
+  const cols = [];
+  for (let i = 0; i < power; i++) cols.push(Math.floor(randGame() * COLS));
+  return cols;
+}
+function consumeIncomingAttackCols() {
+  const result = [];
+  while (incomingAttackQueue.length) {
+    const atk = incomingAttackQueue.shift();
+    if (atk.cols && atk.cols.length) result.push.apply(result, atk.cols);
+    else result.push.apply(result, pickRandomAttackCols(atk.power));
+  }
+  if (result.length) emitColorChainEvent('incomingAttackConsumed', { cols: result.slice(), count: result.length });
+  return result;
+}
+function buildOutgoingAttack(explosionCount, chain, points) {
+  const power = Math.max(0, (explosionCount - 1)) + Math.max(0, chain - 1) + (chain >= 4 ? 1 : 0);
+  if (power <= 0) return null;
+  return {
+    type: 'garbage',
+    power: power,
+    source: 'local',
+    fromPlayerId: matchRuntime.playerId,
+    turn: turn,
+    chain: chain,
+    explosionCount: explosionCount,
+    points: points
+  };
+}
+function publishOutgoingAttack(packet) {
+  if (!packet) return;
+  emitColorChainEvent('outgoingAttack', packet);
+  if (gameMode === 'versus' && typeof matchRuntime.outgoingAttack === 'function') {
+    try { matchRuntime.outgoingAttack(packet); } catch (err) { console.error('[ColorChain:outgoingAttack]', err); }
+  }
+}
+
+window.ColorChain = {
+  version: '0.3.0',
+  setLocale: setLocale,
+  getLocale: function() { return currentLocale; },
+  setMode: setGameMode,
+  getMode: function() { return gameMode; },
+  on: onColorChainEvent,
+  off: offColorChainEvent,
+  queueIncomingAttack: queueIncomingAttack,
+  getSnapshot: getStateSnapshot,
+  start: function(options) { startGame(options || {}); },
+  sendAction: function(action) { return performAction(action, 'remote'); }
+};
+
+function isLocalHostname(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+function readQueryParam(name) {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+  } catch (_) {
+    return null;
+  }
+}
+
+function normalizeServerUrl(url) {
+  let value = String(url || '').trim();
+  if (!value) return '';
+
+  // Allow shorthand host:port and upgrade automatically for https pages.
+  if (!/^wss?:\/\//i.test(value)) {
+    const proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    value = proto + value.replace(/^\/+/, '');
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') return '';
+    if (window.location.protocol === 'https:' && parsed.protocol === 'ws:' && !isLocalHostname(parsed.hostname)) {
+      parsed.protocol = 'wss:';
+    }
+    return parsed.toString();
+  } catch (_) {
+    return '';
+  }
+}
+
+function getDefaultMatchServerUrl() {
+  const fromQuery = normalizeServerUrl(readQueryParam('ws'));
+  if (fromQuery) return fromQuery;
+
+  const host = window.location.hostname;
+  if (isLocalHostname(host)) return 'ws://localhost:8787';
+
+  // GitHub Pages is static-only. Require explicit websocket backend endpoint.
+  const fromQueryHost = readQueryParam('wshost');
+  if (fromQueryHost) {
+    const built = normalizeServerUrl(fromQueryHost);
+    if (built) return built;
+  }
+
+  return '';
+}
+
+function getMatchEls() {
+  return {
+    serverUrl: document.getElementById('match-server-url'),
+    playerName: document.getElementById('match-player-name'),
+    connectBtn: document.getElementById('match-connect-btn'),
+    queueBtn: document.getElementById('match-queue-btn'),
+    leaveBtn: document.getElementById('match-leave-btn'),
+    status: document.getElementById('match-status'),
+    opponent: document.getElementById('match-opponent'),
+    result: document.getElementById('match-result'),
+    restartBtn: document.getElementById('restart-btn')
+  };
+}
+
+function makeDefaultPlayerName() {
+  return 'Player-' + Math.floor(1000 + Math.random() * 9000);
+}
+
+function loadMatchPrefs() {
+  const explicitQueryUrl = normalizeServerUrl(readQueryParam('ws')) || normalizeServerUrl(readQueryParam('wshost'));
+  const defaultUrl = getDefaultMatchServerUrl();
+  let url = explicitQueryUrl || netClient.serverUrl || defaultUrl;
+  let name = netClient.playerName || makeDefaultPlayerName();
+  try {
+    if (!explicitQueryUrl) url = localStorage.getItem(STORAGE_KEYS.matchServerUrl) || url;
+    name = localStorage.getItem(STORAGE_KEYS.matchPlayerName) || name;
+  } catch (_) {}
+  netClient.serverUrl = normalizeServerUrl(url) || defaultUrl || '';
+  netClient.playerName = String(name || makeDefaultPlayerName()).slice(0, 20);
+}
+
+function saveMatchPrefs() {
+  const els = getMatchEls();
+  if (els.serverUrl) netClient.serverUrl = normalizeServerUrl(els.serverUrl.value) || getDefaultMatchServerUrl() || '';
+  if (els.playerName) netClient.playerName = (els.playerName.value || '').trim().slice(0, 20) || makeDefaultPlayerName();
+  try {
+    if (netClient.serverUrl) localStorage.setItem(STORAGE_KEYS.matchServerUrl, netClient.serverUrl);
+    localStorage.setItem(STORAGE_KEYS.matchPlayerName, netClient.playerName);
+  } catch (_) {}
+  if (els.serverUrl && els.serverUrl.value !== netClient.serverUrl) els.serverUrl.value = netClient.serverUrl;
+  if (els.playerName && els.playerName.value !== netClient.playerName) els.playerName.value = netClient.playerName;
+}
+
+function setMatchStatusKey(key, tone, vars) {
+  netClient.statusKey = key || null;
+  netClient.statusText = '';
+  netClient.statusTone = tone || '';
+  netClient.statusVars = vars || null;
+  updateMatchUi();
+}
+
+function setMatchStatusText(text, tone) {
+  netClient.statusKey = null;
+  netClient.statusText = text || '';
+  netClient.statusTone = tone || '';
+  netClient.statusVars = null;
+  updateMatchUi();
+}
+
+function getMatchStatusText() {
+  if (netClient.statusText) return netClient.statusText;
+  if (netClient.statusKey) return t(netClient.statusKey, netClient.statusVars || undefined);
+  if (netClient.connecting) return t('net.connecting');
+  if (netClient.inMatch) return t('net.matched');
+  if (netClient.queued) return t('net.queued');
+  if (netClient.connected) return t('net.connected');
+  return t('net.readyPrompt');
+}
+
+function updateMatchUi() {
+  const els = getMatchEls();
+  if (!els.serverUrl) return;
+
+  if (!netClient.playerName) loadMatchPrefs();
+  if (els.serverUrl.value !== netClient.serverUrl && !els.serverUrl.matches(':focus')) els.serverUrl.value = netClient.serverUrl;
+  if (els.playerName.value !== netClient.playerName && !els.playerName.matches(':focus')) els.playerName.value = netClient.playerName;
+
+  const connectText = netClient.connected ? t('net.disconnect') : (netClient.connecting ? t('net.connecting') : t('net.connect'));
+  els.connectBtn.textContent = connectText;
+  els.connectBtn.disabled = netClient.connecting;
+
+  els.queueBtn.textContent = netClient.queued ? t('net.cancelQueue') : t('net.findMatch');
+  els.queueBtn.disabled = !netClient.connected || netClient.connecting || netClient.inMatch;
+
+  els.leaveBtn.textContent = t('net.leave');
+  els.leaveBtn.disabled = !netClient.inMatch;
+
+  els.serverUrl.disabled = netClient.connecting || netClient.connected;
+  els.playerName.disabled = netClient.connecting || netClient.queued || netClient.inMatch;
+
+  const statusText = getMatchStatusText();
+  els.status.textContent = statusText;
+  els.status.className = 'match-meta-val' + (netClient.statusTone ? ' ' + netClient.statusTone : '');
+
+  if (netClient.opponent) {
+    let line = netClient.opponent.name || netClient.opponent.id || '-';
+    if (netClient.lastRemoteState && typeof netClient.lastRemoteState.score === 'number') {
+      line += ' | ' + t('hud.score') + ' ' + formatInt(netClient.lastRemoteState.score || 0);
+    }
+    if (netClient.lastRemoteState && typeof netClient.lastRemoteState.turn === 'number') {
+      line += ' | ' + t('hud.turn') + ' ' + formatInt(netClient.lastRemoteState.turn || 0);
+    }
+    els.opponent.textContent = line;
+    els.opponent.className = 'match-meta-val strong';
+  } else {
+    els.opponent.textContent = t('net.waiting');
+    els.opponent.className = 'match-meta-val';
+  }
+
+  if (netClient.lastResult === 'win') {
+    els.result.textContent = t('net.result.win');
+    els.result.className = 'match-meta-val ok strong';
+  } else if (netClient.lastResult === 'lose') {
+    els.result.textContent = t('net.result.lose');
+    els.result.className = 'match-meta-val bad strong';
+  } else if (netClient.lastResult === 'draw') {
+    els.result.textContent = t('net.result.draw');
+    els.result.className = 'match-meta-val warn strong';
+  } else {
+    els.result.textContent = '-';
+    els.result.className = 'match-meta-val';
+  }
+
+  if (els.restartBtn) {
+    els.restartBtn.disabled = netClient.inMatch;
+    els.restartBtn.style.opacity = netClient.inMatch ? '0.5' : '';
+    els.restartBtn.style.cursor = netClient.inMatch ? 'not-allowed' : '';
+  }
+}
+
+function sanitizeName(name) {
+  return String(name || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+}
+
+function sendMatchMessage(type, payload) {
+  if (!netClient.ws || netClient.ws.readyState !== WebSocket.OPEN) return false;
+  const msg = Object.assign({ type: type }, payload || {});
+  try {
+    netClient.ws.send(JSON.stringify(msg));
+    return true;
+  } catch (err) {
+    console.error('[match:send]', err);
+    return false;
+  }
+}
+
+function clearMatchSessionState() {
+  netClient.queued = false;
+  netClient.inMatch = false;
+  netClient.roomId = null;
+  netClient.matchSeed = null;
+  netClient.opponent = null;
+  netClient.sentGameOverForRoomId = null;
+  netClient.lastRemoteState = null;
+  if (gameMode === 'versus') setGameMode('solo');
+}
+
+function closeMatchSocket(manualReason) {
+  if (netClient.ws) {
+    try { netClient.ws.close(); } catch (_) {}
+  }
+  netClient.ws = null;
+  netClient.connected = false;
+  netClient.connecting = false;
+  clearMatchSessionState();
+  if (manualReason) setMatchStatusText(manualReason, 'warn');
+  else setMatchStatusKey('net.offline');
+}
+
+function connectMatchSocket(autoQueueAfterConnect) {
+  if (netClient.connected || netClient.connecting) return;
+  saveMatchPrefs();
+  if (!netClient.serverUrl) {
+    setMatchStatusKey('net.needServerUrl', 'bad');
+    return;
+  }
+  netClient.autoQueueAfterConnect = !!autoQueueAfterConnect;
+  netClient.lastError = '';
+  netClient.connecting = true;
+  setMatchStatusKey('net.connecting', 'warn');
+
+  let ws;
+  try {
+    ws = new WebSocket(netClient.serverUrl);
+  } catch (err) {
+    netClient.connecting = false;
+    setMatchStatusText('Connect failed: ' + (err && err.message ? err.message : String(err)), 'bad');
+    return;
+  }
+
+  netClient.ws = ws;
+
+  ws.addEventListener('open', function() {
+    netClient.connecting = false;
+    netClient.connected = true;
+    setMatchStatusKey('net.connected', 'ok');
+    sendMatchMessage('hello', {
+      name: sanitizeName(netClient.playerName) || makeDefaultPlayerName(),
+      clientVersion: window.ColorChain && window.ColorChain.version ? window.ColorChain.version : 'unknown'
+    });
+    if (netClient.autoQueueAfterConnect) {
+      netClient.autoQueueAfterConnect = false;
+      requestQueueJoin();
+    }
+    updateMatchUi();
+  });
+
+  ws.addEventListener('message', function(ev) {
+    let msg;
+    try { msg = JSON.parse(ev.data); }
+    catch (_) { return; }
+    handleMatchMessage(msg);
+  });
+
+  ws.addEventListener('error', function() {
+    setMatchStatusText('Socket error', 'bad');
+  });
+
+  ws.addEventListener('close', function() {
+    const hadMatch = netClient.inMatch;
+    netClient.ws = null;
+    netClient.connected = false;
+    netClient.connecting = false;
+    clearMatchSessionState();
+    if (hadMatch) setMatchStatusKey('net.socketClosed', 'bad');
+    else setMatchStatusKey('net.offline', 'warn');
+    updateMatchUi();
+  });
+}
+
+function requestQueueJoin() {
+  if (!netClient.connected) {
+    connectMatchSocket(true);
+    return;
+  }
+  if (netClient.inMatch) return;
+  netClient.lastResult = null;
+  sendMatchMessage('queue_join', {});
+  setMatchStatusKey('net.queued', 'warn');
+}
+
+function requestQueueLeave() {
+  if (!netClient.connected) return;
+  sendMatchMessage('queue_leave', {});
+  netClient.queued = false;
+  setMatchStatusKey('net.connected', 'ok');
+}
+
+function leaveCurrentMatch() {
+  if (!netClient.inMatch) return;
+  sendMatchMessage('leave_match', { roomId: netClient.roomId, reason: 'client_leave' });
+  clearMatchSessionState();
+  setMatchStatusText(t('net.leftMatch'), 'warn');
+  updateMatchUi();
+}
+
+function sendLocalMatchState(reason) {
+  if (!netClient.inMatch || !netClient.roomId) return;
+  if (!netClient.connected) return;
+  const snapshot = getStateSnapshot();
+  sendMatchMessage('state', {
+    roomId: netClient.roomId,
+    reason: reason || 'update',
+    state: {
+      score: snapshot.score,
+      turn: snapshot.turn,
+      gameOver: snapshot.gameOver,
+      gameState: snapshot.gameState
+    }
+  });
+}
+
+function handleMatchFound(msg) {
+  netClient.queued = false;
+  netClient.inMatch = true;
+  netClient.roomId = msg.roomId || null;
+  netClient.matchSeed = msg.seed;
+  netClient.opponent = msg.opponent || null;
+  netClient.lastResult = null;
+  netClient.lastRemoteState = null;
+  netClient.sentGameOverForRoomId = null;
+  setMatchStatusKey('net.matched', 'ok');
+
+  const playerId = msg.you && msg.you.id ? msg.you.id : (netClient.clientId || 'local');
+  startGame({
+    mode: 'versus',
+    roomId: netClient.roomId,
+    playerId: playerId,
+    outgoingAttack: function(packet) {
+      if (!netClient.inMatch || !netClient.roomId) return;
+      sendMatchMessage('attack', { roomId: netClient.roomId, packet: packet });
+    },
+    seed: msg.seed
+  });
+  sendLocalMatchState('match_start');
+}
+
+function handleMatchEnded(result, statusKey, tone) {
+  netClient.lastResult = result || null;
+  netClient.inMatch = false;
+  netClient.queued = false;
+  netClient.sentGameOverForRoomId = null;
+  netClient.roomId = null;
+  netClient.matchSeed = null;
+  if (gameMode === 'versus') setGameMode('solo');
+  if (statusKey) setMatchStatusKey(statusKey, tone || '');
+  else updateMatchUi();
+}
+
+function handleMatchMessage(msg) {
+  if (!msg || typeof msg.type !== 'string') return;
+
+  switch (msg.type) {
+    case 'welcome':
+      netClient.clientId = msg.clientId || netClient.clientId;
+      if (msg.name) netClient.playerName = msg.name;
+      if (!netClient.inMatch && !netClient.queued) setMatchStatusKey('net.connected', 'ok');
+      break;
+
+    case 'queue_status':
+      netClient.queued = !!msg.queued;
+      if (netClient.queued) setMatchStatusKey('net.queued', 'warn');
+      else if (!netClient.inMatch && netClient.connected) setMatchStatusKey('net.connected', 'ok');
+      break;
+
+    case 'match_found':
+      handleMatchFound(msg);
+      break;
+
+    case 'opponent_attack':
+      if (msg.packet) queueIncomingAttack(Object.assign({}, msg.packet, { source: 'remote' }));
+      break;
+
+    case 'opponent_state':
+      netClient.lastRemoteState = msg.state || null;
+      if (msg.opponent) netClient.opponent = msg.opponent;
+      updateMatchUi();
+      break;
+
+    case 'opponent_game_over':
+      netClient.lastRemoteState = Object.assign({}, netClient.lastRemoteState || {}, {
+        score: msg.score,
+        turn: msg.turn,
+        gameOver: true
+      });
+      updateMatchUi();
+      break;
+
+    case 'match_result':
+      handleMatchEnded(msg.result, 'net.matchEnded', msg.result === 'win' ? 'ok' : (msg.result === 'draw' ? 'warn' : 'bad'));
+      break;
+
+    case 'opponent_left':
+      handleMatchEnded('win', 'net.opponentLeft', 'warn');
+      netClient.opponent = null;
+      break;
+
+    case 'error':
+      setMatchStatusText(String(msg.message || 'Server error'), 'bad');
+      break;
+  }
+}
+
+function initMatchPanel() {
+  loadMatchPrefs();
+  const els = getMatchEls();
+  if (!els.serverUrl) return;
+  els.serverUrl.value = netClient.serverUrl;
+  els.playerName.value = netClient.playerName;
+
+  els.connectBtn.addEventListener('click', function() {
+    if (netClient.connected || netClient.connecting) {
+      closeMatchSocket(t('net.offline'));
+      return;
+    }
+    connectMatchSocket(false);
+  });
+
+  els.queueBtn.addEventListener('click', function() {
+    if (netClient.queued) requestQueueLeave();
+    else requestQueueJoin();
+  });
+
+  els.leaveBtn.addEventListener('click', function() {
+    leaveCurrentMatch();
+  });
+
+  els.serverUrl.addEventListener('change', saveMatchPrefs);
+  els.playerName.addEventListener('change', saveMatchPrefs);
+  els.playerName.addEventListener('blur', saveMatchPrefs);
+
+  setMatchStatusKey('net.readyPrompt');
+  updateMatchUi();
+}
+
+onColorChainEvent('pieceLocked', function() { sendLocalMatchState('piece_locked'); });
+onColorChainEvent('turnReady', function() { sendLocalMatchState('turn_ready'); });
+
+onColorChainEvent('gameOver', function(evt) {
+  if (!netClient.inMatch || !netClient.roomId) return;
+  if (netClient.sentGameOverForRoomId === netClient.roomId) return;
+  netClient.sentGameOverForRoomId = netClient.roomId;
+  sendMatchMessage('game_over', {
+    roomId: netClient.roomId,
+    score: evt.payload && typeof evt.payload.score === 'number' ? evt.payload.score : score,
+    turn: evt.payload && typeof evt.payload.turn === 'number' ? evt.payload.turn : turn
+  });
+});
 
 // ═══ BOARD ═══
 function initBoard() {
@@ -118,14 +1047,14 @@ function initBoard() {
 
 function randomLevel() {
   const w = [0, 40, 35, 25];
-  let roll = Math.random() * 100;
+  let roll = randGame() * 100;
   for (let i = 1; i <= 3; i++) { roll -= w[i]; if (roll <= 0) return i; }
   return 1;
 }
 
 // ═══ PIECES ═══
 function createPiece() {
-  let roll = Math.random() * SHAPE_WEIGHT_SUM;
+  let roll = randGame() * SHAPE_WEIGHT_SUM;
   let idx = 0;
   for (let i = 0; i < SHAPE_WEIGHTS.length; i++) {
     roll -= SHAPE_WEIGHTS[i];
@@ -231,8 +1160,13 @@ function lockPiece(piece) {
 
   turn++;
   holdUsedThisTurn = false;
-  document.getElementById('turn').textContent = turn;
+  updateTurnUI();
   comboCount = 0;
+  emitColorChainEvent('pieceLocked', {
+    turn: turn,
+    piece: clonePieceForSnapshot(piece),
+    score: score
+  });
   if (turn % HEAT_INTERVAL === 0) startHeat();
   else { updateHeatBar(); startResolve(); }
 }
@@ -292,12 +1226,20 @@ function processMerges() {
 
     const pts = group.length * level * 15 * Math.max(comboCount, 1);
     score += pts;
-    floatingTexts.push({x:sx,y:sy,text:group.length>=3?group.length+'MERGE +'+pts:'+'+pts,life:1.1,decay:0.02,vy:-1.3,size:group.length>=3?16:12,color:group.length>=3?'#66ffcc':'#fff',scale:1.2});
+    floatingTexts.push({x:sx,y:sy,text:group.length>=3?t('fx.merge',{count:group.length,points:formatInt(pts)}):t('fx.points',{points:formatInt(pts)}),life:1.1,decay:0.02,vy:-1.3,size:group.length>=3?16:12,color:group.length>=3?'#66ffcc':'#fff',scale:1.2});
     cellScale[sv.r+','+sv.c] = 1.3 + group.length * 0.05;
     cellFlash[sv.r+','+sv.c] = {alpha:1.2,type:'white'};
+    emitColorChainEvent('merge', {
+      turn: turn,
+      level: level,
+      groupSize: group.length,
+      newLevel: newLv,
+      points: pts,
+      combo: comboCount
+    });
   }
 
-  if (merged) { document.getElementById('score').textContent = score; shakeAmount = Math.max(shakeAmount, 4); activeCells = nextActive; }
+  if (merged) { updateScoreUI(); shakeAmount = Math.max(shakeAmount, 4); activeCells = nextActive; }
   else activeCells = new Set();
   return merged;
 }
@@ -311,11 +1253,11 @@ function processExplosions() {
   const chain = comboCount + 1;
   const pts = ex.length * 200 * chain;
   score += pts;
-  document.getElementById('score').textContent = score;
+  updateScoreUI();
 
   const comboEl = document.getElementById('combo-display');
   if (chain >= 2) {
-    comboEl.textContent = chain >= 4 ? '\u{1F4A5} ' + chain + 'x CHAIN!' : chain + 'x CHAIN!';
+    comboEl.textContent = (chain >= 4 ? '\u{1F4A5} ' : '') + t('fx.chain', { chain: chain });
     comboEl.className = 'active';
     comboEl.style.transform = 'scale(1.3)';
     setTimeout(function(){ comboEl.style.transform = 'scale(1)'; }, 150);
@@ -333,11 +1275,11 @@ function processExplosions() {
       particles.push({x:px,y:py,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1,life:0.8,decay:0.025,size:4+Math.random()*3,r:255,g:255,b:220});
     }
     rings.push({x:px,y:py,radius:5,maxR:CELL*1.8+chain*8,life:1,spd:3+chain,color:COLORS[MAX_LEVEL]});
-    floatingTexts.push({x:px+(Math.random()-0.5)*8,y:py,text:'+'+200*chain,life:1.5,decay:0.014,vy:-2.2-chain*0.2,size:chain>=3?24:chain>=2?20:16,color:chain>=3?'#ff2222':chain>=2?'#ffcc00':'#fff',scale:1.5});
+    floatingTexts.push({x:px+(Math.random()-0.5)*8,y:py,text:t('fx.points',{points:formatInt(200*chain)}),life:1.5,decay:0.014,vy:-2.2-chain*0.2,size:chain>=3?24:chain>=2?20:16,color:chain>=3?'#ff2222':chain>=2?'#ffcc00':'#fff',scale:1.5});
     cellFlash[pos.r+','+pos.c] = {alpha:2.5,type:'white'};
   }
-  if (chain >= 2) floatingTexts.push({x:BOARD_W/2,y:BOARD_H/2-30,text:(chain>=4?'\u{1F4A5} ':'')+chain+'x CHAIN!',life:2,decay:0.015,vy:-0.4,size:26+chain*4,color:chain>=4?'#ff1111':'#ffaa00',scale:1.8});
-  if (chain === 1 && ex.length >= 2) floatingTexts.push({x:BOARD_W/2,y:BOARD_H/2,text:'BOOM!',life:1.2,decay:0.02,vy:-0.5,size:24,color:'#ff6644',scale:1.4});
+  if (chain >= 2) floatingTexts.push({x:BOARD_W/2,y:BOARD_H/2-30,text:(chain>=4?'\u{1F4A5} ':'')+t('fx.chain',{chain:chain}),life:2,decay:0.015,vy:-0.4,size:26+chain*4,color:chain>=4?'#ff1111':'#ffaa00',scale:1.8});
+  if (chain === 1 && ex.length >= 2) floatingTexts.push({x:BOARD_W/2,y:BOARD_H/2,text:t('fx.boom'),life:1.2,decay:0.02,vy:-0.5,size:24,color:'#ff6644',scale:1.4});
 
   hitstopTimer = chain >= 3 ? 120 : chain >= 2 ? 80 : 50;
   shakeAmount = Math.min(8 + chain * 5, 25);
@@ -362,6 +1304,13 @@ function processExplosions() {
     cellScale[k] = 1.15;
     activeCells.add(k);
   }
+  emitColorChainEvent('explosionResolve', {
+    turn: turn,
+    chain: chain,
+    explosionCount: ex.length,
+    points: pts
+  });
+  publishOutgoingAttack(buildOutgoingAttack(ex.length, chain, pts));
   return true;
 }
 
@@ -409,6 +1358,7 @@ function startHeat() {
   preHeatBoard = board.map(function(r){ return r.slice(); });
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (board[r][c] > 0) board[r][c]++;
   shakeAmount = 5;
+  emitColorChainEvent('heatStarted', { turn: turn });
 }
 function updateHeat(dt) {
   heatAnimTimer += dt;
@@ -440,7 +1390,7 @@ function planNextJunk() {
   const intv = Math.max(3, JUNK_BASE_INT - Math.floor(ne / 20));
   if (ne % intv !== 0) return;
   const cnt = Math.min(2 + Math.floor(ne / 15), 4), used = new Set();
-  for (let i = 0; i < cnt; i++) { let c, att = 0; do { c = Math.floor(Math.random()*COLS); att++; } while (used.has(c) && att < 10); used.add(c); pendingJunkCols.push(c); }
+  for (let i = 0; i < cnt; i++) { let c, att = 0; do { c = Math.floor(randGame()*COLS); att++; } while (used.has(c) && att < 10); used.add(c); pendingJunkCols.push(c); }
 }
 function spawnJunk(cols) {
   for (const c of cols) {
@@ -448,21 +1398,36 @@ function spawnJunk(cols) {
     for (let r = 0; r < ROWS; r++) { if (board[r][c] !== 0) { if (r===0) break; board[r-1][c]=JUNK; cellScale[(r-1)+','+c]=1.4; cellFlash[(r-1)+','+c]={alpha:1,type:'white'}; placed=true; break; } }
     if (!placed && board[ROWS-1][c]===0) { board[ROWS-1][c]=JUNK; cellScale[(ROWS-1)+','+c]=1.4; }
   }
-  if (cols.length) { floatingTexts.push({x:BOARD_W/2,y:40,text:'\u26A0 JUNK!',life:1,decay:0.025,vy:-0.3,size:14,color:'#888'}); shakeAmount=2; }
+  if (cols.length) {
+    floatingTexts.push({x:BOARD_W/2,y:40,text:t('fx.junkWarning'),life:1,decay:0.025,vy:-0.3,size:14,color:'#888'});
+    shakeAmount=2;
+    emitColorChainEvent('junkSpawned', { turn: turn, cols: cols.slice() });
+  }
 }
 
 function finishTurn() {
   if (warningJunkCols.length) { spawnJunk(warningJunkCols); applyGravityRaw(); }
   warningJunkCols = pendingJunkCols.slice();
+  const incomingCols = consumeIncomingAttackCols();
+  if (incomingCols.length) {
+    warningJunkCols = warningJunkCols.concat(incomingCols);
+    emitColorChainEvent('incomingAttackPreview', { turn: turn, cols: incomingCols.slice(), totalWarningCount: warningJunkCols.length });
+  }
   planNextJunk();
   gameState = 'playing'; currentPiece = nextPiece; nextPiece = createPiece();
   if (!canMove(currentPiece, 0, 0)) triggerGameOver();
   dropTimer = 0;
+  emitColorChainEvent('turnReady', { turn: turn, warningJunkCols: warningJunkCols.slice(), pendingJunkCols: pendingJunkCols.slice() });
   setTimeout(function(){ var el=document.getElementById('combo-display'); el.textContent=''; el.className=''; }, 600);
 }
 
 function hardDrop() { if (gameState!=='playing'||gameOver||!currentPiece) return; while(canMove(currentPiece,1,0)) currentPiece.row++; lockPiece(currentPiece); }
-function triggerGameOver() { gameOver=true; document.getElementById('final-score').textContent=score; document.getElementById('game-over-overlay').classList.add('show'); }
+function triggerGameOver() {
+  gameOver=true;
+  updateFinalScoreUI();
+  document.getElementById('game-over-overlay').classList.add('show');
+  emitColorChainEvent('gameOver', { score: score, turn: turn, snapshot: getStateSnapshot() });
+}
 
 // ═══ DRAWING ═══
 function drawCell(c, x, y, lv, sz, al) {
@@ -579,38 +1544,96 @@ function gameLoop(ts) {
 }
 
 // ═══ INPUT ═══
-document.addEventListener('keydown', function(e) {
-  if (gameOver||gameState!=='playing'||!currentPiece) return;
-  switch(e.key) {
-    case 'ArrowLeft': if(canMove(currentPiece,0,-1))currentPiece.col--; break;
-    case 'ArrowRight': if(canMove(currentPiece,0,1))currentPiece.col++; break;
-    case 'ArrowDown': if(canMove(currentPiece,1,0)){currentPiece.row++;dropTimer=0;} break;
-    case 'ArrowUp': case 'x': case 'X': rotateCW(currentPiece); break;
-    case 'z': case 'Z': rotateCCW(currentPiece); break;
-    case ' ': e.preventDefault(); hardDrop(); break;
-    case 'c': case 'C': doHold(); break;
+function performAction(action, source) {
+  if (action && typeof action === 'object') action = action.action || action.type;
+  if (!action || gameOver || gameState !== 'playing' || !currentPiece) return false;
+
+  const beforePiece = {
+    row: currentPiece.row,
+    col: currentPiece.col,
+    cells: JSON.stringify(currentPiece.cells),
+    id: currentPiece.id
+  };
+  let attempted = true;
+
+  switch (action) {
+    case 'left':
+      if (canMove(currentPiece, 0, -1)) currentPiece.col--;
+      break;
+    case 'right':
+      if (canMove(currentPiece, 0, 1)) currentPiece.col++;
+      break;
+    case 'down':
+      if (canMove(currentPiece, 1, 0)) { currentPiece.row++; dropTimer = 0; }
+      break;
+    case 'rotR':
+      rotateCW(currentPiece);
+      break;
+    case 'rotL':
+      rotateCCW(currentPiece);
+      break;
+    case 'drop':
+      hardDrop();
+      break;
+    case 'hold':
+      doHold();
+      break;
+    default:
+      attempted = false;
   }
+
+  if (!attempted) return false;
+
+  const changed = !currentPiece || beforePiece.id !== currentPiece.id || beforePiece.row !== currentPiece.row || beforePiece.col !== currentPiece.col || beforePiece.cells !== JSON.stringify(currentPiece.cells) || action === 'drop' || action === 'hold';
+  emitColorChainEvent('input', {
+    action: action,
+    source: source || 'local',
+    changed: changed,
+    turn: turn,
+    gameState: gameState
+  });
+  return changed;
+}
+
+document.addEventListener('keydown', function(e) {
+  const keyMap = {
+    ArrowLeft: 'left',
+    ArrowRight: 'right',
+    ArrowDown: 'down',
+    ArrowUp: 'rotR',
+    x: 'rotR',
+    X: 'rotR',
+    z: 'rotL',
+    Z: 'rotL',
+    c: 'hold',
+    C: 'hold',
+    ' ': 'drop'
+  };
+  const action = keyMap[e.key];
+  if (!action) return;
+  if (action === 'drop') e.preventDefault();
+  performAction(action, 'local');
 });
 
 document.querySelectorAll('.touch-btn').forEach(function(b) {
   b.addEventListener('touchstart', function(e) {
-    e.preventDefault(); if(gameOver||gameState!=='playing'||!currentPiece)return;
-    switch(b.dataset.action) {
-      case 'left': if(canMove(currentPiece,0,-1))currentPiece.col--; break;
-      case 'right': if(canMove(currentPiece,0,1))currentPiece.col++; break;
-      case 'down': if(canMove(currentPiece,1,0)){currentPiece.row++;dropTimer=0;} break;
-      case 'rotR': rotateCW(currentPiece); break;
-      case 'rotL': rotateCCW(currentPiece); break;
-      case 'drop': hardDrop(); break;
-      case 'hold': doHold(); break;
-    }
+    e.preventDefault();
+    performAction(b.dataset.action, 'touch');
   });
 });
 
 document.getElementById('restart-btn').addEventListener('click', startGame);
 
 // ═══ START ═══
-function startGame() {
+function startGame(options) {
+  if (options && typeof options.preventDefault === 'function') options = {};
+  options = options || {};
+  if (Object.prototype.hasOwnProperty.call(options, 'mode')) setGameMode(options.mode, options.matchRuntime || options);
+  if (Object.prototype.hasOwnProperty.call(options, 'locale')) setLocale(options.locale, true);
+  if (Object.prototype.hasOwnProperty.call(options, 'seed')) setGameplaySeed(options.seed);
+  else if (gameMode === 'versus') setGameplaySeed(Date.now());
+  else setGameplaySeed(null);
+
   initBoard(); score=0; turn=0; gameOver=false; gameState='playing';
   dropTimer=0; comboCount=0; hitstopTimer=0;
   holdPiece=null; holdUsedThisTurn=false;
@@ -618,16 +1641,32 @@ function startGame() {
   cellFlash={}; cellScale={}; activeCells=new Set();
   shakeAmount=0; screenFlash=0; preHeatBoard=null;
   pendingJunkCols=[]; warningJunkCols=[];
-  document.getElementById('score').textContent='0';
-  document.getElementById('turn').textContent='0';
+  updateScoreUI();
+  updateTurnUI();
   document.getElementById('combo-display').textContent='';
   document.getElementById('combo-display').className='';
   document.getElementById('heat-bar-fill').style.width='0%';
   document.getElementById('game-over-overlay').classList.remove('show');
   currentPiece=createPiece(); nextPiece=createPiece();
   planNextJunk(); lastFrameTime=0;
+  applyLocalization();
+  emitColorChainEvent('gameStarted', {
+    mode: gameMode,
+    seed: gameplaySeed,
+    roomId: matchRuntime.roomId,
+    playerId: matchRuntime.playerId,
+    snapshot: getStateSnapshot()
+  });
 }
-startGame(); requestAnimationFrame(gameLoop);
+document.getElementById('locale-select').addEventListener('change', function(e) {
+  setLocale(e.target.value);
+});
+
+initMatchPanel();
+setLocale(detectInitialLocale(), true);
+updateModeUI();
+startGame();
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
