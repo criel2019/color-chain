@@ -25,6 +25,35 @@ This file is a human/AI handoff log for the `color-chain` client repository.
 
 ## Entries
 
+### Update #2 | 2026-02-24
+
+- Summary:
+- Added `net.*` i18n keys to `ko`, `ja`, `es` locales (matchmaking panel fully localized in all 4 languages).
+- Added `net.rematch` and `net.reconnecting` keys to `en` locale and all other locales.
+- Added REMATCH button to game-over overlay; shown when connected + match ended + not in a new match.
+- Added auto-reconnect: when socket closes unexpectedly, retries once after 2s (auto-requeues if was queued/in-match).
+- Added `_manualDisconnect`, `_reconnectAttempts`, `_reconnectTimer` fields to `netClient` state.
+- Initialized `statusKey`, `statusText`, `statusTone`, `statusVars` in `netClient` declaration (were previously dynamically added).
+
+- Commit intent (this commit):
+- Improve UX after matches end and reduce friction from transient disconnects.
+
+- Commit message summary:
+- Add net.* i18n for all locales, rematch button in game-over overlay, and auto-reconnect logic.
+
+- Optional runtime note:
+- `window.ColorChain.version` is still `0.3.0` (no protocol changes).
+
+- Compatibility notes:
+- No protocol changes; compatible with server Update #2 (security hardening).
+- `net.reconnecting` status shown during 2s reconnect delay — no server-side changes needed.
+
+- Next recommended client tasks:
+- Split `index.html` into `core/ui/net/i18n` files for maintainability.
+- Add protocol version display/validation during `hello`/`welcome`.
+- Add "ready" handshake before match starts (both players confirm ready).
+- Localize tutorial/rules panel when added.
+
 ### Update #1 | 2026-02-24
 
 - Summary:
