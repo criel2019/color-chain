@@ -182,6 +182,29 @@ canvas#comboBannerCanvas{position:absolute;top:calc(4px - var(--fx-pad, 60px));l
 .fx-row-check label{font-size:11px;font-weight:600;color:#5a7a90}
 .fx-panel-close{display:block;margin:10px auto 0;background:rgba(77,184,217,.15);border:1px solid rgba(77,184,217,.3);border-radius:7px;padding:5px 20px;font-family:var(--font-ui);font-size:11px;font-weight:700;color:#3a7a95;cursor:pointer}
 .fx-panel-close:hover{background:rgba(77,184,217,.25)}
+/* Mute button */
+#mute-btn{background:rgba(255,255,255,.45);border:1px solid rgba(160,205,230,.35);border-radius:7px;padding:3px 9px;font-family:var(--font-ui);font-size:13px;font-weight:600;color:#5a8098;cursor:pointer;letter-spacing:.5px;min-width:32px;text-align:center}
+#mute-btn:hover{background:rgba(255,255,255,.6)}
+#mute-btn.muted{color:#b87a20;border-color:rgba(220,160,50,.4)}
+/* Pause overlay */
+#pause-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(210,230,245,.92);z-index:200;flex-direction:column;justify-content:center;align-items:center;gap:14px;border-radius:8px;backdrop-filter:blur(8px)}
+#pause-overlay.show{display:flex}
+#pause-overlay h2{font-family:var(--font-title);font-size:28px;color:#3a6a85;letter-spacing:3px;text-transform:uppercase}
+#resume-btn{padding:10px 32px;background:rgba(77,184,217,.2);color:#2d7a9a;border:1px solid rgba(77,184,217,.45);border-radius:8px;font-family:var(--font-ui);font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px}
+#resume-btn:hover{background:rgba(77,184,217,.32)}
+/* Tap-move overlay */
+#tap-move-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:15}
+@media(pointer:coarse){#tap-move-overlay{display:block}}
+/* Match panel collapse */
+#match-panel.collapsed{display:none}
+/* VS toggle button */
+#vs-toggle-btn{background:rgba(77,184,217,.15);border:1px solid rgba(77,184,217,.35);border-radius:7px;padding:3px 9px;font-family:var(--font-ui);font-size:10px;font-weight:700;color:#2d7a9a;cursor:pointer;letter-spacing:1px;text-transform:uppercase}
+#vs-toggle-btn:hover{background:rgba(77,184,217,.25)}
+/* Countdown overlay */
+#countdown-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(210,230,245,.92);z-index:250;flex-direction:column;justify-content:center;align-items:center;border-radius:8px;backdrop-filter:blur(6px)}
+#countdown-overlay.show{display:flex}
+#countdown-number{font-family:var(--font-title);font-size:72px;color:#4db8d9;text-shadow:0 2px 12px rgba(77,184,217,.4);animation:countdown-pop 0.9s ease-out}
+@keyframes countdown-pop{0%{transform:scale(2);opacity:0}30%{transform:scale(0.9);opacity:1}50%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
 </style>
 </head>
 <body>
@@ -208,6 +231,8 @@ canvas#comboBannerCanvas{position:absolute;top:calc(4px - var(--fx-pad, 60px));l
       <option value="ja">日本語</option>
       <option value="es">Español</option>
     </select>
+    <button id="mute-btn" type="button" aria-label="Mute">♪</button>
+    <button id="vs-toggle-btn" type="button" data-i18n="action.versus">VS MATCH</button>
     <button id="fx-settings-btn" type="button">⚙ FX</button>
   </div>
   <div id="fx-settings-panel">
@@ -221,6 +246,8 @@ canvas#comboBannerCanvas{position:absolute;top:calc(4px - var(--fx-pad, 60px));l
     <div class="fx-row"><label>Brightness</label><input type="range" id="pp-bright" min="50" max="150" value="102"><span class="fx-val" id="pp-bright-val">1.02</span></div>
     <div class="fx-row"><label>Hue Rotate</label><input type="range" id="pp-hue" min="-30" max="30" value="-5"><span class="fx-val" id="pp-hue-val">-5°</span></div>
     <div class="fx-row"><label>Vignette</label><input type="range" id="pp-vig" min="0" max="80" value="6"><span class="fx-val" id="pp-vig-val">0.06</span></div>
+    <div class="fx-panel-title" style="margin-top:10px">Audio</div>
+    <div class="fx-row"><label>Volume</label><input type="range" id="vol-slider" min="0" max="100" value="100"><span class="fx-val" id="vol-slider-val">100%</span></div>
     <button class="fx-panel-close" id="pp-close">Close</button>
   </div>
   <div id="match-panel">
@@ -261,11 +288,19 @@ canvas#comboBannerCanvas{position:absolute;top:calc(4px - var(--fx-pad, 60px));l
         <div id="junk-count-badge">0</div>
         <div id="junk-col-bar"></div>
       </div>
+      <div id="tap-move-overlay"></div>
       <div id="game-over-overlay">
         <h2 data-i18n="overlay.gameOver">Game Over</h2>
         <div class="final-score"><span data-i18n="hud.score">SCORE</span> <span id="final-score">0</span></div>
         <button id="restart-btn" data-i18n="action.retry">RETRY</button>
         <button id="rematch-btn" data-i18n="net.rematch" style="display:none">FIND MATCH AGAIN</button>
+      </div>
+      <div id="pause-overlay">
+        <h2 data-i18n="overlay.paused">PAUSED</h2>
+        <button id="resume-btn" data-i18n="action.resume">RESUME</button>
+      </div>
+      <div id="countdown-overlay">
+        <div id="countdown-number"></div>
       </div>
     </div>
     <div id="vs-sep">VS</div>
@@ -321,6 +356,7 @@ var COMBO_PALETTES = {
 };
 var comboAura = { active: false, x: 0, y: 0, life: 0, chain: 0, startTime: 0 };
 const HEAT_INTERVAL = 10, JUNK_START = 5, JUNK_BASE_INT = 3;
+const DROP_INTERVAL_START = 800, DROP_INTERVAL_MIN = 220;
 const RESOLVE_DELAY = 350, HEAT_DURATION = 700;
 const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
 
@@ -358,6 +394,10 @@ let frameNowMs = 0;
 let gameState = 'playing', resolveTimer = 0;
 let heatAnimTimer = 0, preHeatBoard = null;
 let comboCount = 0, hitstopTimer = 0;
+let lastCoinsMilestone = 0;
+let paused = false;
+let countdownActive = false;
+let masterVolume = 1, muted = false;
 let activeCells = new Set();
 let pendingJunkCols = [], warningJunkCols = [];
 let particles = [], floatingTexts = [], comboBannerTexts = [], rings = [], impactBursts = [];
@@ -379,9 +419,14 @@ function splashMkRing(x, y, lr, lg, lb, mR) {
 }
 function splashSpawn(cx, cy, pw, colorIdx) {
   pw = Math.min(pw, 3);
-  // Ocean water color — matches background sea
+  // Ocean water color — matches background sea, tinted by cell color
   var cr = 100, cg = 195, cb = 210;
   var lr = 170, lg = 230, lb = 240;
+  if (colorIdx > 0 && COLOR_RGB[colorIdx]) {
+    var tr = COLOR_RGB[colorIdx][0], tg = COLOR_RGB[colorIdx][1], tb = COLOR_RGB[colorIdx][2];
+    cr = Math.round(cr * 0.6 + tr * 0.4); cg = Math.round(cg * 0.6 + tg * 0.4); cb = Math.round(cb * 0.6 + tb * 0.4);
+    lr = Math.round(Math.min(255, lr * 0.6 + (tr + 70) * 0.4)); lg = Math.round(Math.min(255, lg * 0.6 + (tg + 70) * 0.4)); lb = Math.round(Math.min(255, lb * 0.6 + (tb + 70) * 0.4));
+  }
   // Disc
   splashPush(splashDiscs, splashMkDisc(cx,cy,pw,lr,lg,lb), SPLASH_MAX.discs);
   // Crown drops — large, visible
@@ -767,6 +812,8 @@ const STORAGE_KEYS = {
   fxProfile: 'colorchain.fxProfile',
   matchServerUrl: 'colorchain.match.serverUrl',
   matchPlayerName: 'colorchain.match.playerName',
+  volume: 'colorchain.volume',
+  muted: 'colorchain.muted',
 };
 
 const FX_PRESETS = {
@@ -833,6 +880,9 @@ const I18N = {
     'fx.junkWarning': '⚠ JUNK!',
     'fx.points': '+{points}',
     'fx.merge': '{count} MERGE +{points}',
+    'overlay.paused': 'PAUSED',
+    'action.resume': 'RESUME',
+    'action.versus': 'VS MATCH',
   },
   ko: {
     'meta.title': '컬러 체인',
@@ -889,6 +939,9 @@ const I18N = {
     'fx.junkWarning': '⚠ 방해블록!',
     'fx.points': '+{points}',
     'fx.merge': '{count}개 합성 +{points}',
+    'overlay.paused': '일시정지',
+    'action.resume': '계속하기',
+    'action.versus': 'VS 매치',
   },
   ja: {
     'meta.title': 'カラー・チェイン',
@@ -945,6 +998,9 @@ const I18N = {
     'fx.junkWarning': '⚠ おじゃま!',
     'fx.points': '+{points}',
     'fx.merge': '{count} MERGE +{points}',
+    'overlay.paused': '一時停止',
+    'action.resume': '再開',
+    'action.versus': 'VS マッチ',
   },
   es: {
     'meta.title': 'Color Chain',
@@ -1001,6 +1057,9 @@ const I18N = {
     'fx.junkWarning': '⚠ BASURA!',
     'fx.points': '+{points}',
     'fx.merge': '{count} MERGE +{points}',
+    'overlay.paused': 'PAUSA',
+    'action.resume': 'CONTINUAR',
+    'action.versus': 'VS PARTIDA',
   }
 };
 
@@ -1060,10 +1119,19 @@ function t(key, vars) {
   return value.replace(/\{(\w+)\}/g, function(_, name) { return vars[name] === undefined ? '' : String(vars[name]); });
 }
 function formatInt(v) { return numberFormatter.format(Math.max(0, Math.floor(v || 0))); }
+function checkCoinsMilestone() {
+  var milestone = Math.floor((score || 0) / 1000);
+  if (milestone > lastCoinsMilestone) {
+    var rate = 1.0 + Math.min(milestone - 1, 8) * 0.03;
+    playSfx('coins', { rate: rate });
+    lastCoinsMilestone = milestone;
+  }
+}
 function updateScoreUI() {
   var el = document.getElementById('score');
   el.textContent = formatInt(score || 0);
   el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  checkCoinsMilestone();
 }
 function updateTurnUI() { document.getElementById('turn').textContent = formatInt(turn || 0); }
 function updateFinalScoreUI() { document.getElementById('final-score').textContent = formatInt(score || 0); }
@@ -1132,6 +1200,79 @@ function getStateSnapshot() {
   };
 }
 
+// ═══ DROP SPEED ═══
+function getDropInterval() {
+  return Math.max(DROP_INTERVAL_MIN, DROP_INTERVAL_START - turn * 0.12);
+}
+
+// ═══ VOLUME / MUTE ═══
+function loadVolumePrefs() {
+  try {
+    var sv = localStorage.getItem(STORAGE_KEYS.volume);
+    if (sv !== null) masterVolume = clampNum(parseFloat(sv), 0, 1);
+    var sm = localStorage.getItem(STORAGE_KEYS.muted);
+    if (sm !== null) muted = sm === 'true';
+  } catch (_) {}
+  updateMuteUI();
+}
+function saveVolumePrefs() {
+  try { localStorage.setItem(STORAGE_KEYS.volume, String(masterVolume)); localStorage.setItem(STORAGE_KEYS.muted, String(muted)); } catch (_) {}
+}
+function updateMuteUI() {
+  var btn = document.getElementById('mute-btn');
+  if (btn) { btn.textContent = muted ? '♪✕' : '♪'; btn.classList.toggle('muted', muted); }
+  var slider = document.getElementById('vol-slider');
+  if (slider) { slider.value = Math.round(masterVolume * 100); }
+  var valEl = document.getElementById('vol-slider-val');
+  if (valEl) { valEl.textContent = Math.round(masterVolume * 100) + '%'; }
+}
+function toggleMute() {
+  muted = !muted; saveVolumePrefs(); updateMuteUI();
+}
+
+// ═══ PAUSE ═══
+function togglePause() {
+  if (gameOver || gameMode === 'versus' || countdownActive) return;
+  paused = !paused;
+  var overlay = document.getElementById('pause-overlay');
+  if (overlay) overlay.classList.toggle('show', paused);
+}
+
+// ═══ MATCH PANEL VISIBILITY ═══
+function updateMatchPanelVisibility() {
+  var panel = document.getElementById('match-panel');
+  if (!panel) return;
+  var show = gameMode === 'versus' || netClient.connected || netClient.connecting || netClient.queued || netClient.inMatch;
+  panel.classList.toggle('collapsed', !show);
+}
+
+// ═══ COUNTDOWN ═══
+function startMatchCountdown(onDone) {
+  countdownActive = true;
+  var overlay = document.getElementById('countdown-overlay');
+  var numEl = document.getElementById('countdown-number');
+  if (!overlay || !numEl) { countdownActive = false; if (onDone) onDone(); return; }
+  overlay.classList.add('show');
+  var count = 3;
+  numEl.textContent = count;
+  numEl.style.animation = 'none'; void numEl.offsetWidth; numEl.style.animation = '';
+  var iv = setInterval(function() {
+    count--;
+    if (count > 0) {
+      numEl.textContent = count;
+      numEl.style.animation = 'none'; void numEl.offsetWidth; numEl.style.animation = '';
+    } else if (count === 0) {
+      numEl.textContent = 'GO!';
+      numEl.style.animation = 'none'; void numEl.offsetWidth; numEl.style.animation = '';
+    } else {
+      clearInterval(iv);
+      overlay.classList.remove('show');
+      countdownActive = false;
+      if (onDone) onDone();
+    }
+  }, 1000);
+}
+
 // ═══ SOUND (Web Audio API — spatial stereo panning) ═══
 let _audioCtx = null;
 const _bufferCache = {};
@@ -1193,6 +1334,7 @@ function colToPan(col) {
 }
 
 function playSfx(name, opts) {
+  if (muted) return;
   opts = opts || {};
   const defaults = {
     win:    { volume: 0.85, rate: 1.00, rateJitter: 0.01 },
@@ -1213,7 +1355,7 @@ function playSfx(name, opts) {
   const baseRate = Number.isFinite(cfg.rate) ? cfg.rate : 1;
   const jitter = Number.isFinite(cfg.rateJitter) ? cfg.rateJitter : 0;
   const rate = clampNum(baseRate + (Math.random() * 2 - 1) * jitter, 0.65, 1.75);
-  const volume = clampNum((Number.isFinite(cfg.volume) ? cfg.volume : 1) * (fxTuning.audio || 1), 0, 1);
+  const volume = clampNum((Number.isFinite(cfg.volume) ? cfg.volume : 1) * (fxTuning.audio || 1) * masterVolume, 0, 1);
   const pan = clampNum(Number.isFinite(cfg.pan) ? cfg.pan : 0, -1, 1);
   const ctx = _resumeAudioCtx();
 
@@ -1622,6 +1764,7 @@ function setGameMode(mode, options) {
     if (oppOverlay) oppOverlay.classList.remove('show');
   }
   updateModeUI();
+  updateMatchPanelVisibility();
   emitColorChainEvent('modeChanged', { mode: gameMode, roomId: matchRuntime.roomId, playerId: matchRuntime.playerId });
 }
 
@@ -1852,6 +1995,7 @@ function updateMatchUi() {
       oppHeader.textContent = ohLine;
     } else { oppHeader.textContent = ''; }
   }
+  updateMatchPanelVisibility();
 }
 function sanitizeName(name) { return String(name || '').replace(/\s+/g, ' ').trim().slice(0, 20); }
 function sendMatchMessage(type, payload) {
@@ -1942,7 +2086,7 @@ function handleMatchFound(msg) {
     outgoingAttack: function(packet) { if (!netClient.inMatch || !netClient.roomId) return; sendMatchMessage('attack', { roomId: netClient.roomId, packet: packet }); },
     seed: msg.seed
   });
-  sendLocalMatchState('match_start');
+  startMatchCountdown(function() { sendLocalMatchState('match_start'); });
 }
 function showResultOverlay(result) {
   gameOver = true; dropTimer = 0;
@@ -2587,6 +2731,7 @@ function triggerGameOver() {
   updateFinalScoreUI();
   const overlay = document.getElementById('game-over-overlay');
   if (overlay) overlay.className = 'show result-gameover';
+  if (gameMode !== 'versus') playSfx('lose');
   emitColorChainEvent('gameOver', { score, turn, snapshot: getStateSnapshot() });
 }
 
@@ -3050,6 +3195,19 @@ function drawCell(c, x, y, lv, sz, al) {
   c.fillText(v, cx, cy + sz * 0.06);
   c.restore();
 }
+// ═══ FROST NOISE CACHE ═══
+var frostNoiseCanvas = null;
+function buildFrostNoiseCache() {
+  frostNoiseCanvas = document.createElement('canvas');
+  frostNoiseCanvas.width = BOARD_W; frostNoiseCanvas.height = BOARD_H;
+  var fc = frostNoiseCanvas.getContext('2d');
+  fc.globalAlpha = 0.09;
+  for (var fy = 0; fy < BOARD_H; fy += 12) { for (var fx = 0; fx < BOARD_W; fx += 12) {
+    var fn = Math.sin(fx * 12.9898 + fy * 78.233) * 43758.5453; fn = fn - Math.floor(fn);
+    if (fn > 0.45) { fc.fillStyle = 'rgba(255,255,255,' + fn * 0.6 + ')'; fc.fillRect(fx + fn * 3, fy + fn * 2, 1.5 + fn * 3, 0.5 + fn * 1.5); }
+  }}
+}
+buildFrostNoiseCache();
 function draw() {
   var sx = 0, sy = 0, sr = 0;
   var nowMs = frameNowMs || (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -3087,13 +3245,8 @@ function draw() {
     cg.addColorStop(0,'rgba(215,238,252,0.35)');cg.addColorStop(0.4,'rgba(225,242,255,0.12)');cg.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=cg;ctx.fillRect(0,0,BOARD_W,BOARD_H);
   }
-  // Frosted noise texture (larger, denser)
-  ctx.save(); ctx.globalAlpha=0.09;
-  for(var fy=0;fy<BOARD_H;fy+=12){for(var fx=0;fx<BOARD_W;fx+=12){
-    var fn=Math.sin(fx*12.9898+fy*78.233)*43758.5453;fn=fn-Math.floor(fn);
-    if(fn>0.45){ctx.fillStyle='rgba(255,255,255,'+fn*0.6+')';ctx.fillRect(fx+fn*3,fy+fn*2,1.5+fn*3,0.5+fn*1.5);}
-  }}
-  ctx.restore();
+  // Frosted noise texture (cached)
+  if (frostNoiseCanvas) { ctx.drawImage(frostNoiseCanvas, 0, 0); }
   if (screenFlash > 0.01) {
     var fr = screenFlashColor[0], fg = screenFlashColor[1], fb = screenFlashColor[2];
     var fcx = screenFlashFocusX - PAD, fcy = screenFlashFocusY - PAD;
@@ -3357,11 +3510,19 @@ function gameLoop(ts) {
     if(window._bgDropsDraw) window._bgDropsDraw();
     requestAnimationFrame(gameLoop); return;
   }
+  if (paused || countdownActive) {
+    lastFrameTime = ts;
+    draw(); drawSide(nextCtx,nextPiece,60,60); drawSide(holdCtx,holdPiece,60,60);
+    if (oppCtx && gameMode === 'versus') renderOpponentBoard();
+    drawCrossCanvas();
+    if(window._bgDropsDraw) window._bgDropsDraw();
+    requestAnimationFrame(gameLoop); return;
+  }
   if (hitstopTimer > 0) hitstopTimer -= dt;
   else switch (gameState) {
     case 'playing':
       dropTimer += dt;
-      if (dropTimer >= dropInterval) {
+      if (dropTimer >= getDropInterval()) {
         dropTimer = 0;
         if (currentPiece && canMove(currentPiece,1,0)) { currentPiece.row++; }
         else if (currentPiece) lockPiece(currentPiece);
@@ -3380,7 +3541,7 @@ function gameLoop(ts) {
 // ═══ INPUT ═══
 function performAction(action, source) {
   if (action && typeof action === 'object') action = action.action || action.type;
-  if (!action || gameOver || gameState !== 'playing' || !currentPiece) return false;
+  if (!action || gameOver || paused || countdownActive || gameState !== 'playing' || !currentPiece) return false;
   const beforePiece = { row: currentPiece.row, col: currentPiece.col, cells: JSON.stringify(currentPiece.cells), id: currentPiece.id };
   let attempted = true;
   switch (action) {
@@ -3412,6 +3573,7 @@ function performAction(action, source) {
 }
 
 document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { togglePause(); return; }
   const keyMap = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'down', ArrowUp:'rotR', x:'rotR', X:'rotR', z:'rotL', Z:'rotL', c:'hold', C:'hold', ' ':'drop' };
   const action = keyMap[e.key]; if (!action) return;
   if (action === 'drop') e.preventDefault();
@@ -3421,6 +3583,31 @@ document.addEventListener('keydown', function(e) {
 document.querySelectorAll('.touch-btn').forEach(function(b) {
   b.addEventListener('touchstart', function(e) { e.preventDefault(); performAction(b.dataset.action, 'touch'); });
 });
+
+// ═══ TAP-MOVE OVERLAY ═══
+(function() {
+  var tapOverlay = document.getElementById('tap-move-overlay');
+  if (!tapOverlay) return;
+  var lastTapTime = 0;
+  tapOverlay.addEventListener('touchstart', function(e) {
+    var now = Date.now();
+    if (now - lastTapTime < 80) return;
+    lastTapTime = now;
+    var touch = e.touches[0];
+    var rect = tapOverlay.getBoundingClientRect();
+    var x = touch.clientX - rect.left;
+    if (x < rect.width / 2) performAction('left', 'touch');
+    else performAction('right', 'touch');
+  });
+  // Tap on pause overlay to resume
+  var pauseOverlay = document.getElementById('pause-overlay');
+  if (pauseOverlay) {
+    pauseOverlay.addEventListener('click', function() { if (paused) togglePause(); });
+  }
+})();
+
+// Resume button
+document.getElementById('resume-btn').addEventListener('click', function() { if (paused) togglePause(); });
 
 document.getElementById('restart-btn').addEventListener('click', startGame);
 document.getElementById('rematch-btn').addEventListener('click', function() { requestQueueJoin(); });
@@ -3437,6 +3624,7 @@ function startGame(options) {
 
   initBoard(); score=0; turn=0; gameOver=false; gameState='playing';
   dropTimer=0; comboCount=0; hitstopTimer=0;
+  lastCoinsMilestone=0; paused=false; countdownActive=false;
   holdPiece=null; holdUsedThisTurn=false;
   particles=[]; floatingTexts=[]; comboBannerTexts=[]; rings=[]; impactBursts=[];
   splashDrops=[]; splashDiscs=[]; splashRings=[]; comboParticles=[]; crossImpacts=[];
@@ -3456,6 +3644,10 @@ function startGame(options) {
   document.getElementById('heat-bar-fill').style.width='0%';
   const overlay = document.getElementById('game-over-overlay');
   if (overlay) overlay.className = '';
+  var pauseOv = document.getElementById('pause-overlay');
+  if (pauseOv) pauseOv.classList.remove('show');
+  var countdownOv = document.getElementById('countdown-overlay');
+  if (countdownOv) countdownOv.classList.remove('show');
   updateJunkPreviewUi();
   // Reset opponent board display (in versus mode, keep the WAITING overlay shown)
   if (oppCtx) oppCtx.clearRect(0,0,216,432);
@@ -3474,11 +3666,27 @@ document.getElementById('fx-intensity-select').addEventListener('change', functi
 
 window.addEventListener('resize', resizeCrossCanvas);
 initMatchPanel();
+loadVolumePrefs();
 applyFxProfile(detectInitialFxProfile(), true);
 setLocale(detectInitialLocale(), true);
 updateModeUI();
+updateMatchPanelVisibility();
 startGame();
 requestAnimationFrame(gameLoop);
+
+// Mute button
+document.getElementById('mute-btn').addEventListener('click', function() { toggleMute(); });
+// VS toggle button
+document.getElementById('vs-toggle-btn').addEventListener('click', function() {
+  playSfx('button');
+  var panel = document.getElementById('match-panel');
+  if (panel && panel.classList.contains('collapsed')) {
+    panel.classList.remove('collapsed');
+    if (!netClient.connected && !netClient.connecting && netClient.serverUrl) connectMatchSocket(false);
+  } else if (panel) {
+    if (!netClient.inMatch && !netClient.queued) panel.classList.add('collapsed');
+  }
+});
 
 // ═══ FX SETTINGS PANEL ═══
 (function(){
@@ -3506,6 +3714,17 @@ requestAnimationFrame(gameLoop);
       ppApply();
     });
   });
+  // Volume slider
+  var volSlider = document.getElementById('vol-slider');
+  var volVal = document.getElementById('vol-slider-val');
+  if (volSlider) {
+    volSlider.value = Math.round(masterVolume * 100);
+    volSlider.addEventListener('input', function() {
+      masterVolume = clampNum(parseInt(volSlider.value, 10) / 100, 0, 1);
+      if (volVal) volVal.textContent = Math.round(masterVolume * 100) + '%';
+      saveVolumePrefs();
+    });
+  }
 })();
 
 // ═══ BACKGROUND WATER DROPLETS ═══
