@@ -2516,7 +2516,15 @@ function updateHeat(dt) {
 function updateHeatBar() { document.getElementById('heat-bar-fill').style.width = (turn % HEAT_INTERVAL) / HEAT_INTERVAL * 100 + '%'; }
 
 // ═══ RESOLVE ═══
-function startResolve() { gameState='resolve'; resolveTimer=0; }
+function startResolve() {
+  var safety = 100;
+  while (safety-- > 0) {
+    if (processMerges()) { applyGravity(); comboCount++; continue; }
+    if (processExplosions()) { applyGravity(); comboCount++; continue; }
+    break;
+  }
+  updateHeatBar(); finishTurn();
+}
 function updateResolve(dt) { resolveTimer+=dt; if(resolveTimer>=RESOLVE_DELAY) doResolveStep(); }
 function doResolveStep() { if(processMerges()){applyGravity();comboCount++;resolveTimer=0;return;} if(processExplosions()){applyGravity();comboCount++;resolveTimer=0;return;} updateHeatBar();finishTurn(); }
 
