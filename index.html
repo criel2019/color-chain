@@ -205,6 +205,34 @@ canvas#comboBannerCanvas{position:absolute;top:calc(4px - var(--fx-pad, 60px));l
 #countdown-overlay.show{display:flex}
 #countdown-number{font-family:var(--font-title);font-size:72px;color:#4db8d9;text-shadow:0 2px 12px rgba(77,184,217,.4);animation:countdown-pop 0.9s ease-out}
 @keyframes countdown-pop{0%{transform:scale(2);opacity:0}30%{transform:scale(0.9);opacity:1}50%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+/* High score list in game-over overlay */
+#high-score-list{width:90%;max-width:200px;margin-top:6px}
+#high-score-list .hs-title{font-size:10px;font-weight:700;color:var(--color-muted);text-transform:uppercase;letter-spacing:1.2px;text-align:center;margin-bottom:4px}
+#high-score-list .hs-row{display:flex;align-items:center;gap:4px;padding:2px 4px;font-size:11px;color:#5a7a90;border-radius:4px}
+#high-score-list .hs-row.current{background:rgba(77,184,217,.12);color:#2d7a9a;font-weight:700}
+#high-score-list .hs-rank{min-width:22px;font-weight:700;color:var(--color-muted);font-size:10px}
+#high-score-list .hs-score{flex:1;font-weight:700;font-family:var(--font-title);font-size:13px;color:#d08820}
+#high-score-list .hs-row.current .hs-score{color:#c07010}
+#high-score-list .hs-turn{font-size:10px;color:var(--color-muted);min-width:32px;text-align:right}
+#high-score-list .hs-new{font-size:9px;font-weight:800;color:#4db8d9;letter-spacing:.5px}
+/* Chat bar */
+#chat-bar{display:none;width:100%;max-width:220px;gap:4px;flex-wrap:wrap;justify-content:center;padding:4px 0}
+#boards-row.versus ~ #chat-bar,#boards-row.versus + * + * + #chat-bar{display:flex}
+.chat-preset-btn{background:rgba(255,255,255,.5);border:1px solid rgba(160,205,230,.4);border-radius:7px;padding:3px 7px;font-size:13px;cursor:pointer;transition:background .12s;user-select:none}
+.chat-preset-btn:hover{background:rgba(255,255,255,.7)}
+.chat-preset-btn:active{background:rgba(77,184,217,.18)}
+.chat-preset-btn:disabled{opacity:.35;cursor:not-allowed}
+/* Chat bubble */
+.chat-bubble{position:absolute;z-index:180;padding:4px 10px;border-radius:10px;font-size:15px;font-weight:700;font-family:var(--font-ui);pointer-events:none;animation:chat-bubble-in .3s ease-out}
+.chat-bubble.me{background:rgba(77,184,217,.2);color:#2d7a9a;border:1px solid rgba(77,184,217,.35);right:8px}
+.chat-bubble.opp{background:rgba(220,160,50,.15);color:#b87a20;border:1px solid rgba(220,160,50,.3);left:8px}
+@keyframes chat-bubble-in{0%{transform:translateY(8px) scale(.85);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes chat-bubble-out{0%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+/* Danger warning pulse */
+@keyframes danger-pulse{0%,100%{opacity:.4}50%{opacity:.8}}
+/* Combo glow on board-wrapper */
+@keyframes combo-glow-fade{0%{box-shadow:0 0 24px 8px var(--combo-glow-color,rgba(251,191,36,.4)),0 2px 16px rgba(100,170,210,.18)}100%{box-shadow:0 2px 16px rgba(100,170,210,.18)}}
+@keyframes combo-scale-pulse{0%{transform:scale(1)}35%{transform:scale(1.03)}100%{transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -294,6 +322,7 @@ canvas#comboBannerCanvas{position:absolute;top:calc(4px - var(--fx-pad, 60px));l
         <div class="final-score"><span data-i18n="hud.score">SCORE</span> <span id="final-score">0</span></div>
         <button id="restart-btn" data-i18n="action.retry">RETRY</button>
         <button id="rematch-btn" data-i18n="net.rematch" style="display:none">FIND MATCH AGAIN</button>
+        <div id="high-score-list"></div>
       </div>
       <div id="pause-overlay">
         <h2 data-i18n="overlay.paused">PAUSED</h2>
@@ -325,6 +354,7 @@ canvas#comboBannerCanvas{position:absolute;top:calc(4px - var(--fx-pad, 60px));l
     <div class="touch-btn wide" data-action="drop" data-i18n="action.drop">DROP</div>
     <div class="touch-btn wide" data-action="hold" data-i18n="action.hold">HOLD</div>
   </div>
+  <div id="chat-bar"></div>
 </div>
 <script>
 // ═══ CONSTANTS ═══
@@ -814,6 +844,7 @@ const STORAGE_KEYS = {
   matchPlayerName: 'colorchain.match.playerName',
   volume: 'colorchain.volume',
   muted: 'colorchain.muted',
+  highScores: 'colorchain.highScores',
 };
 
 const FX_PRESETS = {
@@ -883,6 +914,9 @@ const I18N = {
     'overlay.paused': 'PAUSED',
     'action.resume': 'RESUME',
     'action.versus': 'VS MATCH',
+    'hud.highScore': 'HIGH SCORES',
+    'hud.rank': '#{rank}',
+    'hud.new': 'NEW',
   },
   ko: {
     'meta.title': '컬러 체인',
@@ -942,6 +976,9 @@ const I18N = {
     'overlay.paused': '일시정지',
     'action.resume': '계속하기',
     'action.versus': 'VS 매치',
+    'hud.highScore': '최고 기록',
+    'hud.rank': '#{rank}',
+    'hud.new': 'NEW',
   },
   ja: {
     'meta.title': 'カラー・チェイン',
@@ -1001,6 +1038,9 @@ const I18N = {
     'overlay.paused': '一時停止',
     'action.resume': '再開',
     'action.versus': 'VS マッチ',
+    'hud.highScore': 'ハイスコア',
+    'hud.rank': '#{rank}',
+    'hud.new': 'NEW',
   },
   es: {
     'meta.title': 'Color Chain',
@@ -1060,6 +1100,9 @@ const I18N = {
     'overlay.paused': 'PAUSA',
     'action.resume': 'CONTINUAR',
     'action.versus': 'VS PARTIDA',
+    'hud.highScore': 'MEJORES PUNTAJES',
+    'hud.rank': '#{rank}',
+    'hud.new': 'NUEVO',
   }
 };
 
@@ -1227,7 +1270,55 @@ function updateMuteUI() {
   if (valEl) { valEl.textContent = Math.round(masterVolume * 100) + '%'; }
 }
 function toggleMute() {
-  muted = !muted; saveVolumePrefs(); updateMuteUI();
+  muted = !muted; saveVolumePrefs(); updateMuteUI(); updateBgmVolume();
+}
+
+// ═══ BGM ═══
+var bgmSource = null, bgmGain = null;
+function startBgm() {
+  if (bgmSource) return;
+  var ctx = _resumeAudioCtx(); if (!ctx) return;
+  var buf = _bufferCache['bgm'];
+  if (!buf) {
+    _loadOneBuffer('bgm');
+    // Retry once after load
+    setTimeout(function() {
+      if (!bgmSource && _bufferCache['bgm']) startBgm();
+    }, 2000);
+    return;
+  }
+  try {
+    bgmSource = ctx.createBufferSource();
+    bgmSource.buffer = buf;
+    bgmSource.loop = true;
+    bgmGain = ctx.createGain();
+    bgmGain.gain.value = muted ? 0 : masterVolume * 0.35;
+    bgmSource.connect(bgmGain);
+    bgmGain.connect(ctx.destination);
+    bgmSource.start(0);
+  } catch (_) { bgmSource = null; bgmGain = null; }
+}
+function stopBgm() {
+  if (bgmSource) { try { bgmSource.stop(); } catch (_) {} bgmSource = null; }
+  bgmGain = null;
+}
+function updateBgmVolume() {
+  if (bgmGain) bgmGain.gain.value = muted ? 0 : masterVolume * 0.35;
+}
+
+// ═══ BOARD DANGER WARNING ═══
+var dangerLevel = null, dangerSfxCooldown = 0;
+function getBoardDangerLevel() {
+  if (!board) return null;
+  var highest = ROWS;
+  for (var c = 0; c < COLS; c++) {
+    for (var r = 0; r < ROWS; r++) {
+      if (board[r][c] !== 0) { if (r < highest) highest = r; break; }
+    }
+  }
+  if (highest <= 2) return 'critical';
+  if (highest <= 4) return 'warning';
+  return null;
 }
 
 // ═══ PAUSE ═══
@@ -1244,6 +1335,41 @@ function updateMatchPanelVisibility() {
   if (!panel) return;
   var show = gameMode === 'versus' || netClient.connected || netClient.connecting || netClient.queued || netClient.inMatch;
   panel.classList.toggle('collapsed', !show);
+}
+
+// ═══ HIGH SCORES (Top 10 local ranking) ═══
+function loadHighScores() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEYS.highScores);
+    if (raw) { var arr = JSON.parse(raw); if (Array.isArray(arr)) return arr.slice(0, 10); }
+  } catch (_) {}
+  return [];
+}
+function saveHighScore(sc, tn) {
+  var list = loadHighScores();
+  var entry = { score: sc, turn: tn, date: new Date().toISOString().slice(0, 10) };
+  list.push(entry);
+  list.sort(function(a, b) { return b.score - a.score || a.turn - b.turn; });
+  list = list.slice(0, 10);
+  try { localStorage.setItem(STORAGE_KEYS.highScores, JSON.stringify(list)); } catch (_) {}
+  return list;
+}
+function updateHighScoreUI(currentScore) {
+  var el = document.getElementById('high-score-list');
+  if (!el) return;
+  var list = loadHighScores();
+  if (!list.length) { el.innerHTML = ''; return; }
+  var html = '<div class="hs-title">' + t('hud.highScore') + '</div>';
+  for (var i = 0; i < list.length; i++) {
+    var isNew = list[i].score === currentScore;
+    html += '<div class="hs-row' + (isNew ? ' current' : '') + '">'
+      + '<span class="hs-rank">' + t('hud.rank', { rank: i + 1 }) + '</span>'
+      + '<span class="hs-score">' + formatInt(list[i].score) + '</span>'
+      + '<span class="hs-turn">T' + list[i].turn + '</span>'
+      + (isNew ? '<span class="hs-new">' + t('hud.new') + '</span>' : '')
+      + '</div>';
+  }
+  el.innerHTML = html;
 }
 
 // ═══ COUNTDOWN ═══
@@ -1284,7 +1410,8 @@ const _SFX_MAP = {
   burst: 'assets/sounds/burst.wav', drop: 'assets/sounds/drop.wav',
   merge: 'assets/sounds/merge.wav',
   combo1: 'assets/sounds/combo1.wav', combo2: 'assets/sounds/combo2.wav',
-  combo3: 'assets/sounds/combo3.wav', combo4: 'assets/sounds/combo4.wav'
+  combo3: 'assets/sounds/combo3.wav', combo4: 'assets/sounds/combo4.wav',
+  bgm: 'assets/sounds/bgm.mp3'
 };
 function _getAudioCtx() {
   if (_audioCtx) return _audioCtx;
@@ -1765,6 +1892,7 @@ function setGameMode(mode, options) {
   }
   updateModeUI();
   updateMatchPanelVisibility();
+  if (typeof updateChatBarVisibility === 'function') updateChatBarVisibility();
   emitColorChainEvent('modeChanged', { mode: gameMode, roomId: matchRuntime.roomId, playerId: matchRuntime.playerId });
 }
 
@@ -2090,6 +2218,7 @@ function handleMatchFound(msg) {
 }
 function showResultOverlay(result) {
   gameOver = true; dropTimer = 0;
+  stopBgm();
   updateFinalScoreUI();
   const overlay = document.getElementById('game-over-overlay');
   const h2 = overlay ? overlay.querySelector('h2') : null;
@@ -2113,6 +2242,8 @@ function showResultOverlay(result) {
     const showRematch = netClient.connected && !netClient.inMatch && !netClient.queued && netClient.lastResult !== null;
     els.rematchBtn.style.display = showRematch ? 'block' : 'none';
   }
+  saveHighScore(score, turn);
+  updateHighScoreUI(score);
 }
 function handleMatchEnded(result, statusKey, tone) {
   netClient.lastResult = result || null; netClient.inMatch = false; netClient.queued = false;
@@ -2177,6 +2308,9 @@ function handleMatchMessage(msg) {
     case 'opponent_left':
       handleMatchEnded('win', 'net.opponentLeft', 'warn');
       netClient.opponent = null;
+      break;
+    case 'chat':
+      if (msg.text && typeof msg.text === 'string') displayChatBubble(msg.text.slice(0, 20), false);
       break;
     case 'error':
       setMatchStatusText(String(msg.message || 'Server error').slice(0, 200), 'bad');
@@ -2285,6 +2419,8 @@ function doHold() {
 
 // ═══ LOCK → REACTIONS ═══
 function lockPiece(piece, landingStrength) {
+  // If piece locks during resolve, flush remaining chains instantly first
+  if (gameState === 'resolve') { flushResolve(); }
   const TAG_BASE = 100;
   for (let i = 0; i < piece.cells.length; i++) {
     const r = piece.row + piece.cells[i][0], c = piece.col + piece.cells[i][1];
@@ -2550,8 +2686,8 @@ function processExplosions() {
   }
   // Flash color follows chain depth: light cyan → deep indigo
   const flashRgb = chain >= 5 ? [99, 102, 241] : chain >= 4 ? [34, 211, 238] : chain >= 3 ? [52, 211, 153] : chain >= 2 ? [103, 232, 249] : [165, 243, 252];
-  setBoardPulse(Math.min(0.22 + chain * 0.06 + ex.length * 0.015, 0.72), flashRgb, centerX, centerY);
-  setScreenFlash(Math.min(.38 + chain*.12 + ex.length*.018, 0.95), flashRgb, centerX, centerY);
+  setBoardPulse(Math.min(0.28 + chain * 0.08 + ex.length * 0.015, 0.85), flashRgb, centerX, centerY);
+  setScreenFlash(Math.min(.42 + chain*.15 + ex.length*.018, 1.0), flashRgb, centerX, centerY);
   spawnImpactBurst(centerX, centerY, flashRgb, 0.95 + chain * 0.2);
   if (chain >= 4) spawnImpactBurst(centerX, centerY, chain >= 5 ? [99, 102, 241] : [165, 243, 252], 0.7 + chain * 0.12);
   // Pick water palette based on chain: gentle ripple (1) → tsunami (5+)
@@ -2596,12 +2732,12 @@ function processExplosions() {
     spawnImpactBurst(px, py, fwColors[Math.floor(Math.random() * fwColors.length)], 0.5 + chain * 0.08);
     TEMP OFF */
     const ptColor = chain>=5?'#6a5acd':chain>=4?'#d08820':chain>=3?'#2a8a5a':chain>=2?'#3090b0':'#3a90b5';
-    pushFloatingText({x:px+(Math.random()-.5)*8,y:py,text:t('fx.points',{points:formatInt(200*chain)}),life:1.5,decay:.014,vy:-2.2-chain*.2,size:chain>=3?24:chain>=2?20:16,color:ptColor,scale:1.5,premium:chain>=2,chainLevel:chain});
+    pushFloatingText({x:px+(Math.random()-.5)*8,y:py,text:t('fx.points',{points:formatInt(200*chain)}),life:1.5,decay:.014,vy:-2.2-chain*.2,size:chain>=4?30:chain>=3?26:chain>=2?22:18,color:ptColor,scale:chain>=4?1.7:1.5,premium:chain>=2,chainLevel:chain});
     cellFlash[pos.r+','+pos.c] = {alpha:2.5,type:'white'};
   }
   if (chain >= 2) {
     var chainColor2 = chain>=5?'#6a5acd':chain>=4?'#d08820':chain>=3?'#2a8a5a':'#3a90b5';
-    pushFloatingText({x:BOARD_W/2,y:56,text:t('fx.chain',{chain}),life:1.35,decay:.02,vy:-.2,size:Math.min(28+chain*3,42),color:chainColor2,scale:Math.min(1.4+chain*0.04,1.65),channel:'combo-banner',font:'Black Han Sans',premium:true,chainLevel:chain});
+    pushFloatingText({x:BOARD_W/2,y:56,text:t('fx.chain',{chain}),life:1.35,decay:.02,vy:-.2,size:Math.min(32+chain*4,50),color:chainColor2,scale:Math.min(1.5+chain*0.06,1.8),channel:'combo-banner',font:'Black Han Sans',premium:true,chainLevel:chain});
     // Activate combo aura glow
     comboAura.active = true; comboAura.x = BOARD_W/2; comboAura.y = 56;
     comboAura.life = 1.4; comboAura.chain = chain; comboAura.startTime = Date.now();
@@ -2611,8 +2747,28 @@ function processExplosions() {
     else if (chain >= 4) pushFloatingText({x:BOARD_W/2,y:80,text:'SPLASH!',life:1.0,decay:.024,vy:-.14,size:14,color:'#d08820',scale:1.1,channel:'combo-banner',font:'Black Han Sans',premium:true,chainLevel:chain});
   }
   if (chain === 1 && ex.length >= 2) pushFloatingText({x:BOARD_W/2,y:62,text:t('fx.boom'),life:0.95,decay:.026,vy:-.15,size:22,color:'#2878a8',scale:1.25,channel:'combo-banner'});
-  hitstopTimer = Math.max(12, Math.round((chain>=5?140:chain>=4?105:chain>=3?75:chain>=2?50:30) * (fxTuning.hitstop || 1)));
-  addShake(Math.min(14+chain*9+ex.length*1.1, 68), { x: ((centerX - BOARD_W / 2) / BOARD_W) * 26, y: -4 - chain * 1.3, rot: 0.004 + chain * 0.001 });
+  hitstopTimer = Math.max(12, Math.round((chain>=5?180:chain>=4?130:chain>=3?90:chain>=2?60:30) * (fxTuning.hitstop || 1)));
+  addShake(Math.min(14+chain*12+ex.length*1.1, 85), { x: ((centerX - BOARD_W / 2) / BOARD_W) * 26, y: -4 - chain * 1.3, rot: 0.004 + chain * 0.001 });
+  // chain 3+: bg-video opacity pulse
+  if (chain >= 3) {
+    var bgv = document.getElementById('bg-video');
+    if (bgv) { bgv.style.transition = 'opacity .15s'; bgv.style.opacity = '0.75'; setTimeout(function() { bgv.style.opacity = '0.55'; }, 200); }
+  }
+  // chain 4+: color box-shadow glow on board-wrapper
+  if (chain >= 4) {
+    var bw = document.getElementById('board-wrapper');
+    if (bw) {
+      var glowColor = 'rgba(' + flashRgb[0] + ',' + flashRgb[1] + ',' + flashRgb[2] + ',.4)';
+      bw.style.setProperty('--combo-glow-color', glowColor);
+      bw.style.animation = 'none'; void bw.offsetWidth;
+      bw.style.animation = 'combo-glow-fade .6s ease-out forwards';
+    }
+  }
+  // chain 5+: scale pulse on board-wrapper
+  if (chain >= 5) {
+    var bw5 = document.getElementById('board-wrapper');
+    if (bw5) { bw5.style.transition = 'transform .15s'; bw5.style.transform = 'scale(1.03)'; setTimeout(function() { bw5.style.transform = 'scale(1)'; }, 180); }
+  }
   for (const pos of ex) board[pos.r][pos.c] = 0;
   const affected = new Set(), junkDead = [];
   for (const pos of ex) for (const [dr, dc] of DIRS) {
@@ -2661,16 +2817,47 @@ function updateHeatBar() { document.getElementById('heat-bar-fill').style.width 
 
 // ═══ RESOLVE ═══
 function startResolve() {
+  // Try first step immediately — if no chains, skip resolve entirely
+  if (processMerges()) { applyGravity(); comboCount++; }
+  else if (processExplosions()) { applyGravity(); comboCount++; }
+  else {
+    // No chains — immediate turn end, no resolve needed
+    updateHeatBar(); doFinishTurn(); return;
+  }
+  // Chains found — enter sequential resolve, spawn piece so player can play
+  gameState = 'resolve'; resolveTimer = 0;
+  currentPiece = nextPiece; nextPiece = createPiece();
+  resetPieceJellyFx(true); excitePieceJellyFx('spawn', 1.05);
+  if (!canMove(currentPiece, 0, 0)) triggerGameOver();
+  dropTimer = 0;
+}
+function updateResolve(dt) { resolveTimer += dt; if (resolveTimer >= RESOLVE_DELAY) doResolveStep(); }
+function doResolveStep() {
+  if (processMerges()) { applyGravity(); comboCount++; resolveTimer = 0; return; }
+  if (processExplosions()) { applyGravity(); comboCount++; resolveTimer = 0; return; }
+  updateHeatBar(); endResolve();
+}
+function endResolve() {
+  // Process junk & attacks from the resolved turn
+  if (warningJunkCols.length) { spawnJunk(warningJunkCols); applyGravityRaw(); }
+  warningJunkCols = pendingJunkCols.slice();
+  const incomingCols = consumeIncomingAttackCols();
+  if (incomingCols.length) { warningJunkCols = warningJunkCols.concat(incomingCols); emitColorChainEvent('incomingAttackPreview', {turn, cols: incomingCols.slice(), totalWarningCount: warningJunkCols.length}); }
+  planNextJunk(); updateJunkPreviewUi();
+  gameState = 'playing';
+  emitColorChainEvent('turnReady', {turn, warningJunkCols: warningJunkCols.slice(), pendingJunkCols: pendingJunkCols.slice()});
+  setTimeout(function(){ var el = document.getElementById('combo-display'); el.textContent = ''; el.className = ''; el.style.background = ''; el.style.webkitBackgroundClip = ''; el.style.backgroundClip = ''; el.style.color = ''; el.style.textShadow = ''; el.style.animation = ''; }, 600);
+}
+function flushResolve() {
+  // Instantly process all remaining chain steps (called when piece locks during resolve)
   var safety = 100;
   while (safety-- > 0) {
     if (processMerges()) { applyGravity(); comboCount++; continue; }
     if (processExplosions()) { applyGravity(); comboCount++; continue; }
     break;
   }
-  updateHeatBar(); finishTurn();
+  updateHeatBar(); endResolve();
 }
-function updateResolve(dt) { resolveTimer+=dt; if(resolveTimer>=RESOLVE_DELAY) doResolveStep(); }
-function doResolveStep() { if(processMerges()){applyGravity();comboCount++;resolveTimer=0;return;} if(processExplosions()){applyGravity();comboCount++;resolveTimer=0;return;} updateHeatBar();finishTurn(); }
 
 // ═══ JUNK ═══
 function planNextJunk() {
@@ -2703,24 +2890,23 @@ function updateJunkPreviewUi() {
     bar.appendChild(dot);
   }
 }
-function finishTurn() {
-  if(warningJunkCols.length){spawnJunk(warningJunkCols);applyGravityRaw();}
+function doFinishTurn() {
+  // No-chain path: spawn junk + next piece together (no resolve delay)
+  if (warningJunkCols.length) { spawnJunk(warningJunkCols); applyGravityRaw(); }
   warningJunkCols = pendingJunkCols.slice();
   const incomingCols = consumeIncomingAttackCols();
-  if(incomingCols.length){warningJunkCols=warningJunkCols.concat(incomingCols);emitColorChainEvent('incomingAttackPreview',{turn,cols:incomingCols.slice(),totalWarningCount:warningJunkCols.length});}
-  planNextJunk();
-  updateJunkPreviewUi();
-  gameState='playing'; currentPiece=nextPiece; nextPiece=createPiece();
-  resetPieceJellyFx(true);
-  excitePieceJellyFx('spawn', 1.05);
-  if(!canMove(currentPiece,0,0)) triggerGameOver();
-  dropTimer=0;
-  emitColorChainEvent('turnReady',{turn,warningJunkCols:warningJunkCols.slice(),pendingJunkCols:pendingJunkCols.slice()});
-  setTimeout(function(){var el=document.getElementById('combo-display');el.textContent='';el.className='';el.style.background='';el.style.webkitBackgroundClip='';el.style.backgroundClip='';el.style.color='';el.style.textShadow='';el.style.animation='';},600);
+  if (incomingCols.length) { warningJunkCols = warningJunkCols.concat(incomingCols); emitColorChainEvent('incomingAttackPreview', {turn, cols: incomingCols.slice(), totalWarningCount: warningJunkCols.length}); }
+  planNextJunk(); updateJunkPreviewUi();
+  gameState = 'playing';
+  currentPiece = nextPiece; nextPiece = createPiece();
+  resetPieceJellyFx(true); excitePieceJellyFx('spawn', 1.05);
+  if (!canMove(currentPiece, 0, 0)) triggerGameOver();
+  dropTimer = 0;
+  emitColorChainEvent('turnReady', {turn, warningJunkCols: warningJunkCols.slice(), pendingJunkCols: pendingJunkCols.slice()});
 }
 
 function hardDrop() {
-  if(gameState!=='playing'||gameOver||!currentPiece) return;
+  if((gameState!=='playing'&&gameState!=='resolve')||gameOver||!currentPiece) return;
   var moved = 0;
   while(canMove(currentPiece,1,0)) { currentPiece.row++; moved++; }
   lockPiece(currentPiece, Math.min(2.4, 1 + moved * 0.18));
@@ -2728,10 +2914,13 @@ function hardDrop() {
 function triggerGameOver() {
   if (gameOver) return;
   gameOver = true; dropTimer = 0;
+  stopBgm();
   updateFinalScoreUI();
   const overlay = document.getElementById('game-over-overlay');
   if (overlay) overlay.className = 'show result-gameover';
   if (gameMode !== 'versus') playSfx('lose');
+  saveHighScore(score, turn);
+  updateHighScoreUI(score);
   emitColorChainEvent('gameOver', { score, turn, snapshot: getStateSnapshot() });
 }
 
@@ -3247,6 +3436,39 @@ function draw() {
   }
   // Frosted noise texture (cached)
   if (frostNoiseCanvas) { ctx.drawImage(frostNoiseCanvas, 0, 0); }
+  // ── Board danger warning ──
+  if (!gameOver && gameState !== 'heat') {
+    var dl = getBoardDangerLevel();
+    if (dl !== dangerLevel) {
+      if (dl === 'critical' && dangerLevel !== 'critical' && dangerSfxCooldown <= 0) {
+        playSfx('error'); dangerSfxCooldown = 3000;
+      }
+      dangerLevel = dl;
+    }
+    if (dangerSfxCooldown > 0) dangerSfxCooldown -= (16); // approx per frame
+    if (dl === 'warning') {
+      var dpulse = 0.12 + Math.sin(nowMs * 0.004) * 0.06;
+      var dg = ctx.createLinearGradient(0, 0, 0, BOARD_H * 0.35);
+      dg.addColorStop(0, 'rgba(220,60,60,' + dpulse + ')');
+      dg.addColorStop(1, 'rgba(220,60,60,0)');
+      ctx.fillStyle = dg; ctx.fillRect(0, 0, BOARD_W, BOARD_H * 0.35);
+    } else if (dl === 'critical') {
+      var cpulse = 0.2 + Math.sin(nowMs * 0.006) * 0.1;
+      var cg = ctx.createLinearGradient(0, 0, 0, BOARD_H * 0.5);
+      cg.addColorStop(0, 'rgba(220,40,40,' + (cpulse * 1.5) + ')');
+      cg.addColorStop(0.4, 'rgba(220,40,40,' + (cpulse * 0.5) + ')');
+      cg.addColorStop(1, 'rgba(220,40,40,0)');
+      ctx.fillStyle = cg; ctx.fillRect(0, 0, BOARD_W, BOARD_H * 0.5);
+      // Vignette
+      var vg = ctx.createRadialGradient(BOARD_W / 2, BOARD_H / 2, BOARD_W * 0.3, BOARD_W / 2, BOARD_H / 2, BOARD_W * 0.9);
+      vg.addColorStop(0, 'rgba(220,40,40,0)');
+      vg.addColorStop(1, 'rgba(220,40,40,' + (cpulse * 0.6) + ')');
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, BOARD_W, BOARD_H);
+      // Micro shake
+      sx += (Math.random() - 0.5) * 1.2;
+      sy += (Math.random() - 0.5) * 1.2;
+    }
+  }
   if (screenFlash > 0.01) {
     var fr = screenFlashColor[0], fg = screenFlashColor[1], fb = screenFlashColor[2];
     var fcx = screenFlashFocusX - PAD, fcy = screenFlashFocusY - PAD;
@@ -3529,7 +3751,16 @@ function gameLoop(ts) {
       }
       break;
     case 'heat': updateHeat(dt); break;
-    case 'resolve': updateResolve(dt); break;
+    case 'resolve':
+      updateResolve(dt);
+      // Piece also drops during resolve — player can play while chains animate
+      dropTimer += dt;
+      if (dropTimer >= getDropInterval()) {
+        dropTimer = 0;
+        if (currentPiece && canMove(currentPiece,1,0)) { currentPiece.row++; }
+        else if (currentPiece) lockPiece(currentPiece);
+      }
+      break;
   }
   draw(); drawSide(nextCtx,nextPiece,60,60); drawSide(holdCtx,holdPiece,60,60);
   if (oppCtx && gameMode === 'versus') renderOpponentBoard();
@@ -3541,7 +3772,7 @@ function gameLoop(ts) {
 // ═══ INPUT ═══
 function performAction(action, source) {
   if (action && typeof action === 'object') action = action.action || action.type;
-  if (!action || gameOver || paused || countdownActive || gameState !== 'playing' || !currentPiece) return false;
+  if (!action || gameOver || paused || countdownActive || (gameState !== 'playing' && gameState !== 'resolve') || !currentPiece) return false;
   const beforePiece = { row: currentPiece.row, col: currentPiece.col, cells: JSON.stringify(currentPiece.cells), id: currentPiece.id };
   let attempted = true;
   switch (action) {
@@ -3657,6 +3888,8 @@ function startGame(options) {
   resetPieceJellyFx(true);
   excitePieceJellyFx('spawn', 1.1);
   planNextJunk(); lastFrameTime=0;
+  dangerLevel = null; dangerSfxCooldown = 0;
+  stopBgm(); startBgm();
   applyLocalization();
   emitColorChainEvent('gameStarted', { mode: gameMode, seed: gameplaySeed, roomId: matchRuntime.roomId, playerId: matchRuntime.playerId, snapshot: getStateSnapshot() });
 }
@@ -3687,6 +3920,44 @@ document.getElementById('vs-toggle-btn').addEventListener('click', function() {
     if (!netClient.inMatch && !netClient.queued) panel.classList.add('collapsed');
   }
 });
+
+// ═══ VERSUS CHAT ═══
+var CHAT_PRESETS = ['\uD83D\uDC4B','\uD83D\uDE04','\uD83D\uDD25','\uD83D\uDC80','GG','WOW','GL','NO!'];
+var chatCooldown = 0;
+(function initChatBar() {
+  var bar = document.getElementById('chat-bar');
+  if (!bar) return;
+  CHAT_PRESETS.forEach(function(text) {
+    var btn = document.createElement('button');
+    btn.className = 'chat-preset-btn';
+    btn.textContent = text;
+    btn.type = 'button';
+    btn.addEventListener('click', function() {
+      if (chatCooldown > Date.now()) return;
+      if (!netClient.inMatch || !netClient.roomId) return;
+      sendMatchMessage('chat', { roomId: netClient.roomId, text: text });
+      displayChatBubble(text, true);
+      chatCooldown = Date.now() + 1500;
+      playSfx('button');
+    });
+    bar.appendChild(btn);
+  });
+})();
+function displayChatBubble(text, isMe) {
+  var wrapper = isMe ? document.getElementById('board-wrapper') : document.getElementById('opp-board-wrapper');
+  if (!wrapper) wrapper = document.getElementById('board-wrapper');
+  var bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ' + (isMe ? 'me' : 'opp');
+  bubble.textContent = text;
+  bubble.style.top = '40px';
+  wrapper.appendChild(bubble);
+  setTimeout(function() { bubble.style.animation = 'chat-bubble-out .3s ease-in forwards'; }, 1700);
+  setTimeout(function() { if (bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 2000);
+}
+function updateChatBarVisibility() {
+  var bar = document.getElementById('chat-bar');
+  if (bar) bar.style.display = (gameMode === 'versus' && netClient.inMatch) ? 'flex' : 'none';
+}
 
 // ═══ FX SETTINGS PANEL ═══
 (function(){
@@ -3722,7 +3993,7 @@ document.getElementById('vs-toggle-btn').addEventListener('click', function() {
     volSlider.addEventListener('input', function() {
       masterVolume = clampNum(parseInt(volSlider.value, 10) / 100, 0, 1);
       if (volVal) volVal.textContent = Math.round(masterVolume * 100) + '%';
-      saveVolumePrefs();
+      saveVolumePrefs(); updateBgmVolume();
     });
   }
 })();
